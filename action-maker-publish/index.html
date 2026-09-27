@@ -467,7 +467,7 @@ cv.addEventListener('pointermove',e=>{
   if(!ptrs.has(e.pointerId))return;const q=sp(e);ptrs.set(e.pointerId,q);
   if(pz0&&ptrs.size===2){
     const[a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1,m={x:(a.x+b.x)/2,y:(a.y+b.y)/2},s=cl(pz0.Z.s*d/pz0.d,.5,6),w0={x:(pz0.m.x-pz0.Z.x)/pz0.Z.s,y:(pz0.m.y-pz0.Z.y)/pz0.Z.s};
-    Z.s=s;Z.x=m.x-s*w0.x;Z.y=m.y-s*w0.y;return}
+    Z.s=s;Z.x=m.x-s*w0.x;Z.y=m.y-s*w0.y;frame(sel);return}
   if(e.pointerId!==pid)return;
   if(rulerOn&&rulerPt){const p=wp(q);rulerPt.x1=p.x;rulerPt.y1=p.y;return}
   if(drawing)(paint?stroke(q):(bpn||psn)?strokeSel(q):penAt(q,pl));else if(wg)wmove(q);else if(tgt){const p=wp(q);mv(p);if(tgt.phys){thist.push({t:performance.now(),x:p.x,y:p.y});if(thist.length>6)thist.shift()}}else if(pan){Z.x=q.x-pan.x;Z.y=q.y-pan.y}
@@ -492,11 +492,11 @@ addEventListener('pointerup',end);addEventListener('pointercancel',end);
 addEventListener('blur',()=>{ptrs.clear();pz0=null;up()});
 cv.addEventListener('lostpointercapture',end);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
-cv.addEventListener('wheel',e=>{e.preventDefault();const q=sp(e),w=wp(q),s=cl(Z.s*(e.deltaY<0?1.1:1/1.1),.5,6);Z.s=s;Z.x=q.x-s*w.x;Z.y=q.y-s*w.y},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();const q=sp(e),w=wp(q),s=cl(Z.s*(e.deltaY<0?1.1:1/1.1),.5,6);Z.s=s;Z.x=q.x-s*w.x;Z.y=q.y-s*w.y;frame(sel)},{passive:false});
 $('zr').onclick=()=>{Z.s=1;Z.x=0;Z.y=0};
 let handMode=false;
 $('hand').onclick=()=>{handMode=!handMode;$('hand').classList.toggle('on',handMode)};
-function zoomBy(k){const cx=W/2,cy=H/2,w0={x:(cx-Z.x)/Z.s,y:(cy-Z.y)/Z.s},s=cl(Z.s*k,.5,6);Z.s=s;Z.x=cx-s*w0.x;Z.y=cy-s*w0.y}
+function zoomBy(k){const cx=W/2,cy=H/2,w0={x:(cx-Z.x)/Z.s,y:(cy-Z.y)/Z.s},s=cl(Z.s*k,.5,6);Z.s=s;Z.x=cx-s*w0.x;Z.y=cy-s*w0.y;frame(sel)}
 $('zin').onclick=()=>zoomBy(1.35);$('zout').onclick=()=>zoomBy(1/1.35);
 
 /* UI */
