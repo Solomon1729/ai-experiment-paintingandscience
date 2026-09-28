@@ -765,7 +765,7 @@ $('wc').onclick=()=>{if(sel){sel.pins=[];sel.ps=undefined;sel.wd=true;renderPins
 $('wbake').onclick=()=>{
   const l=sel;if(!l||!l.pins.length)return;pushUndo();
   const oldLvl=lvl;lvl=0;l.wo=null;l.sd=null;l.wd=true;warpFrame(l);lvl=oldLvl;
-  if(l.wo){ensureBase(l);const bw=l._bw,bh=l._bh,bg=l.base.getContext('2d'),mx=WM*bw,my=WM*bh;bg.clearRect(0,0,bw,bh);bg.drawImage(l.wo,-mx,-my,WX*bw,WX*bh);recompose(l)}
+  if(l.wo){ensureBase(l);const bw=l._bw,bh=l._bh,bg=l.base.getContext('2d'),R=l.wo.width,sx=(R-bw/WX)/2,sy=(R-bh/WX)/2;bg.clearRect(0,0,bw,bh);bg.drawImage(l.wo,sx,sy,bw/WX,bh/WX,0,0,bw,bh);recompose(l)}
   l.pins=[];l.syncTo=null;l.ps=undefined;l.wo=null;l.sd=null;renderPins();
   note('歪みを画像に統合しました。見た目はそのままで、一覧からは消えています。');
 };
