@@ -1050,7 +1050,7 @@ const CL=[];
 function boxCv(l){
   const src=l.wo||l.img,iw=src.naturalWidth||src.width||1,ih=src.naturalHeight||src.height||1;
   let W,H,dw,dh;
-  if(l.wo){W=H=Math.max(1024,Math.round(Math.max(iw,ih)));dw=dw=WX*W;dh=WX*H}
+  if(l.wo){W=H=Math.max(1024,Math.round(Math.max(iw,ih)));dw=WX*W;dh=WX*H}
   else{const L=Math.min(1600,Math.max(512,Math.round(Math.max(iw,ih)))),k=L/Math.max(iw,ih);W=Math.max(1,Math.round(iw*k));H=Math.max(1,Math.round(ih*k));dw=W;dh=H}
   const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
   const ox=(W-dw)/2,oy=(H-dh)/2;
