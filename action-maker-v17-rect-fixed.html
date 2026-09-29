@@ -874,8 +874,14 @@ $('bbs').oninput=e=>{brushBlur=+e.target.value};
 $('bbake').onclick=()=>{
   const l=sel;if(!l||!l.hasBm||!l.blur){note('先にぼかしを塗って、強さを付けてください');return}
   pushUndo();
-  const{c,W,H}=boxCv(l);ensureBase(l);const BR=l._bw;
-  l.base.getContext('2d').clearRect(0,0,BR,BR);l.base.getContext('2d').drawImage(c,0,0,c.width,c.height,0,0,BR,BR);
+  const{c,W,H}=boxCv(l);ensureBase(l);const BRw=l._bw,BRh=l._bh;
+  const bg=l.base.getContext('2d');bg.clearRect(0,0,BRw,BRh);
+  if(l.wo){
+    const S=Math.max(BRw,BRh),dx=(BRw-S)/2,dy=(BRh-S)/2;
+    bg.drawImage(c,0,0,W,H,dx,dy,S,S);
+  }else{
+    bg.drawImage(c,0,0,W,H,0,0,BRw,BRh);
+  }
   if(l.pen)l.pen.getContext('2d').clearRect(0,0,l.pen.width,l.pen.height);bumpBP(l,1,1);
   l.blur=0;l.hasBm=false;if(l.bm)l.bm.getContext('2d').clearRect(0,0,MR,MR);
   recompose(l);
