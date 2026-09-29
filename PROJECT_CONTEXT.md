@@ -65,7 +65,7 @@
 `physStep(dt)`が`loop()`から毎フレーム呼ばれ、`fx,fy`を直接書き換える。現状の限界（拡張の動機）：**円近似のみ・回転なし・摩擦なし（床で`vx*=.9`の簡易処理）・速度に`*.999`の擬似減衰・可変dt・拘束（紐/ばね）なし**。動きチャンネルとは独立で、`m`等は描画時のオフセットとして別に乗る（入れ子の動きが成立する理由）。`paused`に従う。ドラッグ→リリースで投げられる（`thist`で速度算出）。
 
 ### 保存・Undo
-`snap()/restore()`（Undo, `US`最大40件）と`ser()/loadProj()`（ファイル）の二系統。`SKIP`セット（`img,cv,mask,bm,sm,bite,base,pen,wo,wg,od,sd,F,M,wx,wy,ph,dirty,wd`）と`_`始まりのキーはJSON化せず、Canvas系は`frz()`（Undo, 版番号でキャッシュしたcanvasクローン）/`u2()`（PNG dataURL）が個別に扱う。`restore()`は`base`/`pen`を`null`にし`cv`を新`img`にする（焼き込み）。`syncTo`の共有配列は保存/復元で参照が切れるため、`restore()`と`loadProj()`末尾で再リンクしている。
+`snap()/restore()`（Undo, `US`最大40件）と`ser()/loadProj()`（ファイル）の二系統。`SKIP`セット（`img,cv,mask,bm,sm,bite,base,pen,wo,wg,od,sd,F,M,wx,wy,ph,dirty,wd`）と`_`始まりのキーはJSON化せず、Canvas系は`frz()`（Undo, 版番号でキャッシュしたcanvasクローン）/`u2()`（PNG dataURL）が個別に扱う。`snap()`は`base`/`pen`も版番号（`bsv`/`pnv`）つきで保存し、`restore()`はそれを戻して`recompose`する（v17.1〜。それ以前は`base`/`pen`を捨てて`cv`を焼き込んでおり、Undo後に「描いた分だけ消す」が効かなくなる原因だった）。保存・読込は従来どおり焼き込み。`syncTo`の共有配列は保存/復元で参照が切れるため、`restore()`と`loadProj()`末尾で再リンクしている。
 
 ### ペンの現状（v17）
 `baseRes(l)`＝`max(512, min(PENCAP=900, 元画像の長辺))`。`ensureBase`が**正方形**R×Rにletterboxして元画像を`base`へ写す（元画像が900超なら、初回のペン使用時に900へ縮小される＝画質低下の原因だった）。`penAt`が線を引くたび`recompose`が**キャンバス全面**を`clear`＋2回`drawImage`する（Rが大きいほど1ポインタ移動あたりのコストが二乗で増える）。
@@ -113,7 +113,7 @@
 - `frame()`がズーム値を変えないこと。2本指の時間差判定（`firstDownTs`、300ms）。
 - `att`アクターの`fx,fy`が権威ある値でない非対称性。
 - `SKIP`とCanvasフィールドの対応。`WV`の対称規約。
-- ペンの`base/pen/cv`と`snap/restore/ser/loadProj`の対応（`restore`で焼き込まれる挙動）。
+- ペンの`base/pen/cv`と`snap/restore/ser/loadProj`の対応（`base`/`pen`を書き換える箇所は`bumpBP`で版番号を進める）。
 
 ## 9. 現在地と次の一手
 

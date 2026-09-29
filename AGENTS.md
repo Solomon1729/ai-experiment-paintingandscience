@@ -53,7 +53,7 @@ node -e "const fs=require('fs');const s=fs.readFileSync('index.html','utf8');fs.
 - **物理（`physStep`）と動き（`ch`チャンネル）**：物理は`fx,fy`を直接書き換え、動きチャンネルは描画時に加算オフセットとして乗る。この関係を崩すと入れ子の動き（落下しつつ揺れる）が壊れる。物理に回転を足す場合も、`l.rot`を書き換えず別フィールド（例：`phys.ang`）を描画時に加算すること。
 - **ブラシ変数**：`brushMask`/`brushBlur`/`brushParts`は別変数。統合しない。
 - **歪みの解像度（`actorWR`）とマスク/ぼかしの解像度（`MR=512`）とペンの解像度（`baseRes`）**：3系統は別物。`perfTick`は歪み専用の処理時間だけで判定する。方針：ペンは端末で分けず共通定数（`PENCAP`）、歪みは負荷に応じて自動で落としてよい。ただし**歪みの焼き込み（`wbake`）は静止画処理なので、`lvl`・`LVCAP`に縛られず実解像度で行う**（`actorWR`本体は変えない）。
-- **ペンの`base`/`pen`/`cv`**：`restore()`（Undo）は`base`と`pen`を捨て、`cv`を新しい`img`として使う（描いた内容が焼き込まれる）。この挙動に依存するコードがあるので、キャンバス解像度を変える時は`snap`/`restore`/`ser`/`loadProj`を必ず一緒に確認する。
+- **ペンの`base`/`pen`/`cv`**：`snap()`/`restore()`（Undo/Redo）は`base`と`pen`を版番号（`bsv`/`pnv`）つきで保存・復元する（`base`がある間は`cv`を保存せず、復元時に`recompose`で作り直す）。`base`/`pen`を書き換える箇所（`penAt`・`wbake`・`bbake`・`takePart`の切り取り）では、`bumpBP(l,b,p)`で版番号を進めること（忘れるとUndoが古い状態を返す）。一方、保存・読込（`ser()`/`loadProj()`）は従来どおり`base`/`pen`を持たず、合成結果`img`に焼き込まれる。キャンバス解像度を変える時は`snap`/`restore`/`ser`/`loadProj`を必ず一緒に確認する。
 
 ## 5. データ構造を変更する時の注意
 
