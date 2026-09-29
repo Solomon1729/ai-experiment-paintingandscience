@@ -129,7 +129,7 @@ body.fs.tpc #tp .tab,body.fs.tpc #tp #tabs button[data-t]{display:none}
 
   <div class="tab" data-tab="dr">
     <div class="row tools"><button data-tool="pen" class="on">✏️ ペン</button><button data-tool="eraser">🧽 消しゴム（描いた分だけ）</button><button data-tool="ieraser">🧹 消しゴム（画像ごと）</button></div>
-    <div class="row" id="es2"><span class="lab">消し具合</span><input id="es" type="range" min="0.1" max="1" step="0.05" value="1" aria-label="消しゴムの強さ（弱いほど半透明に残る）"></div>
+    <div class="row" id="es2" style="display:none"><span class="lab">消し具合</span><input id="es" type="range" min="0.1" max="1" step="0.05" value="1" aria-label="消しゴムの強さ（弱いほど半透明に残る）"></div>
     <div class="row" id="pn"><input id="pcol" type="color" value="#e0245e" aria-label="ペンの色"><button class="pk" data-for="pcol" aria-label="スポイト">💧</button><span class="lab" style="min-width:0">太さ</span><input id="ps" type="range" min="2" max="40" value="10" aria-label="ペンの太さ"></div>
     <div class="row"><span class="lab">文字</span><input id="tx" type="text" placeholder="文字を入力" aria-label="文字" style="flex:1;min-width:120px;font:inherit;padding:6px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:inherit"><input id="tcl" type="color" value="#2b2140" aria-label="文字の色"><button class="pk" data-for="tcl" aria-label="スポイト">💧</button></div>
     <div class="row"><button id="addt">＋文字を置く</button><button id="addd">＋白紙レイヤー</button></div>
@@ -491,11 +491,11 @@ addEventListener('pointerup',end);addEventListener('pointercancel',end);
 addEventListener('blur',()=>{ptrs.clear();pz0=null;up()});
 cv.addEventListener('lostpointercapture',end);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
-cv.addEventListener('wheel',e=>{e.preventDefault();const q=sp(e),w=wp(q),s=cl(Z.s*(e.deltaY<0?1.1:1/1.1),.5,6);Z.s=s;Z.x=q.x-s*w.x;Z.y=q.y-s*w.y},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();const q=sp(e),w=wp(q),s=cl(Z.s*(e.deltaY<0?1.1:1/1.1),.25,12);Z.s=s;Z.x=q.x-s*w.x;Z.y=q.y-s*w.y},{passive:false});
 $('zr').onclick=()=>{Z.s=1;Z.x=0;Z.y=0};
 let handMode=false;
 $('hand').onclick=()=>{handMode=!handMode;$('hand').classList.toggle('on',handMode)};
-function zoomBy(k){const cx=W/2,cy=H/2,w0={x:(cx-Z.x)/Z.s,y:(cy-Z.y)/Z.s},s=cl(Z.s*k,.5,6);Z.s=s;Z.x=cx-s*w0.x;Z.y=cy-s*w0.y}
+function zoomBy(k){const cx=W/2,cy=H/2,w0={x:(cx-Z.x)/Z.s,y:(cy-Z.y)/Z.s},s=cl(Z.s*k,.25,12);Z.s=s;Z.x=cx-s*w0.x;Z.y=cy-s*w0.y}
 $('zin').onclick=()=>zoomBy(1.35);$('zout').onclick=()=>zoomBy(1/1.35);
 
 /* UI */
@@ -874,14 +874,8 @@ $('bbs').oninput=e=>{brushBlur=+e.target.value};
 $('bbake').onclick=()=>{
   const l=sel;if(!l||!l.hasBm||!l.blur){note('先にぼかしを塗って、強さを付けてください');return}
   pushUndo();
-  const{c,W,H}=boxCv(l);ensureBase(l);const BRw=l._bw,BRh=l._bh;
-  const bg=l.base.getContext('2d');bg.clearRect(0,0,BRw,BRh);
-  if(l.wo){
-    const S=Math.max(BRw,BRh),dx=(BRw-S)/2,dy=(BRh-S)/2;
-    bg.drawImage(c,0,0,W,H,dx,dy,S,S);
-  }else{
-    bg.drawImage(c,0,0,W,H,0,0,BRw,BRh);
-  }
+  const{c,W,H}=boxCv(l);ensureBase(l);const BR=l._bw;
+  l.base.getContext('2d').clearRect(0,0,BR,BR);l.base.getContext('2d').drawImage(c,0,0,c.width,c.height,0,0,BR,BR);
   if(l.pen)l.pen.getContext('2d').clearRect(0,0,l.pen.width,l.pen.height);bumpBP(l,1,1);
   l.blur=0;l.hasBm=false;if(l.bm)l.bm.getContext('2d').clearRect(0,0,MR,MR);
   recompose(l);
@@ -1146,6 +1140,7 @@ function setTool(t){tool=t;paint=t==='mouth'||t==='mouthx';erase=t==='mouthx';bp
   if(t==='pen'||t==='eraser'||t==='ieraser')lastPen=t;if(paint||bpn)lastMask=t;if(psn||pbox)lastPart=t;
   const on=new Set([lastPen,lastMask,lastPart,t]);document.querySelectorAll('#tp [data-tool]').forEach(b=>b.classList.toggle('on',on.has(b.dataset.tool)));
   $('ht').textContent=HT[t]||HINT;
+  $('es2').style.display=(t==='eraser'||t==='ieraser')?'':'none';
   if(t!=='move'&&!seen[t]){seen[t]=1;$('hint').hidden=false;clearTimeout(hto);hto=setTimeout(()=>{$('hint').hidden=true},4500)}}
 const TT={pt:()=>lastPart,pl:()=>'move',mo:()=>'move',bg:()=>'move',ph:()=>'move',wp:()=>'warp',dr:()=>lastPen,mk:()=>lastMask};
 function setTab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.tab===t));document.querySelectorAll('#tabs [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.getElementById('tabs').style.display=t==='ph'?'none':'flex';$('physMode').textContent=t==='ph'?'🎬 アニメーションに戻る':'⚙️ 物理モードに切り替え';if(t==='bg'){const b=document.querySelector('#tabs [data-t="bg"]');if(b)b.classList.remove('flag')}setTool(TT[t]())}
