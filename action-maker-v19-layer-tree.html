@@ -582,7 +582,7 @@ function loop(ts){
 const sp=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}};
 const wp=q=>({x:(q.x-Z.x)/Z.s,y:(q.y-Z.y)/Z.s});
 const cap=e=>{try{cv.setPointerCapture(e.pointerId)}catch(_){}};
-const up=()=>{editing=false;tgt=null;drawing=false;lp=null;pan=null;pid=-1;wg=null;dragOff=null;boxStart=null;boxEnd=null};
+const up=()=>{if(pid>=0){try{if(cv.hasPointerCapture(pid))cv.releasePointerCapture(pid)}catch(_){}}editing=false;tgt=null;drawing=false;lp=null;pan=null;pid=-1;wg=null;dragOff=null;boxStart=null;boxEnd=null};
 /* B-1〜B-4: レイヤー。表示/ロックの共通関門 */
 const LY=id=>LAYERS.find(y=>y.id===id)||LAYERS[0];
 const layOf=l=>LY(l.layerId),layIdx=l=>LAYERS.indexOf(layOf(l));
@@ -916,6 +916,7 @@ function penAt(q,l){
 }
 $('pcol').oninput=e=>{pcol=e.target.value};$('ps').oninput=e=>{pw=+e.target.value};$('es').oninput=e=>{eraseStrength=+e.target.value};
 document.querySelectorAll('#tp [id^="adj"]').forEach(e=>{if(e.type==='range'&&e.id!=='adjBs')e.oninput=()=>{if(!sel)return;const map={adjBr:'brightness',adjCo:'contrast',adjSa:'saturation',adjHu:'hue',adjTe:'temperature',adjHi:'highlights',adjSh:'shadows',adjWh:'whites',adjBl:'blacks'},k=map[e.id];if(!k)return;ensureAdj(sel)[k]=+e.value;adjDirty(sel);adjUi();paintFrame()};if(e.type==='range'&&e.id!=='adjBs')e.onpointerdown=()=>{pushUndo()}});
+document.querySelectorAll('#ca input[type="range"],#lf input[type="range"],#ca button,#lf button').forEach(e=>e.addEventListener('pointerdown',ev=>{up();ev.stopPropagation()}));
 $('adjPaint').onclick=()=>{adjMode=adjMode==='paint'?'':'paint';setTool('move');adjUi()};
 $('adjErase').onclick=()=>{adjMode=adjMode==='erase'?'':'erase';setTool('move');adjUi()};
 $('adjBs').oninput=e=>{adjBrush=+e.target.value};
