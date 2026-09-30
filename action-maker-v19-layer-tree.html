@@ -675,8 +675,7 @@ function pdown(e){
   pushUndo();pid=e.pointerId;const p=wp(q);
   if(rulerOn){drawing=true;rulerPt={x0:p.x,y0:p.y,x1:p.x,y1:p.y};return}
   if(paint){if(blocked(sel))return;drawing=true;lp=null;stroke(q);return}
-  if(lfMode){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;lfBrushAt(q,pl);return}
-  if(adjMode){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;adjBrushAt(q,pl);return}
+  if(lfMode||adjMode){pl=hit(p)||sel;if(blocked(pl))return;if(!pl)return;const ts=adjustmentTargets();if(adjTargetMode==='current'){if(pl!==sel)return;drawing=true;lp=null;if(lfMode)lfBrushAt(q,pl);else adjBrushAt(q,pl)}else{if(!ts.length)return;drawing=true;lp=null;ts.forEach(l=>{if(!blocked(l)){if(lfMode)lfBrushAt(q,l);else adjBrushAt(q,l)}})}return}
   if(pbox){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;boxStart=loc(pl,q);boxEnd={...boxStart};return}
   if(bpn||psn){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;strokeSel(q);return}
   if(tool==='pen'||tool==='eraser'||tool==='ieraser'){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;strokeActor=pl;penAt(q,pl);return}
@@ -699,7 +698,7 @@ cv.addEventListener('pointermove',e=>{
     Z.s=s;Z.x=m.x-s*w0.x;Z.y=m.y-s*w0.y;return}
   if(e.pointerId!==pid)return;
   if(rulerOn&&rulerPt){const p=wp(q);rulerPt.x1=p.x;rulerPt.y1=p.y;return}
-  if(drawing)(paint?stroke(q):lfMode?lfBrushAt(q,pl):adjMode?adjBrushAt(q,pl):pbox?(boxEnd=loc(pl,q)):((bpn||psn)?strokeSel(q):penAt(q,pl)));else if(wg)wmove(q);else if(tgt){const p=wp(q);mv(p);if(tgt.phys){thist.push({t:performance.now(),x:p.x,y:p.y});if(thist.length>6)thist.shift()}}else if(pan){Z.x=q.x-pan.x;Z.y=q.y-pan.y}
+  if(drawing)(paint?stroke(q):lfMode||adjMode?(adjTargetMode==='current'?(lfMode?lfBrushAt(q,pl):adjBrushAt(q,pl)):adjustmentTargets().forEach(l=>{if(!blocked(l)){if(lfMode)lfBrushAt(q,l);else adjBrushAt(q,l)}})):pbox?(boxEnd=loc(pl,q)):((bpn||psn)?strokeSel(q):penAt(q,pl)));else if(wg)wmove(q);else if(tgt){const p=wp(q);mv(p);if(tgt.phys){thist.push({t:performance.now(),x:p.x,y:p.y});if(thist.length>6)thist.shift()}}else if(pan){Z.x=q.x-pan.x;Z.y=q.y-pan.y}
 });
 let thist=[],firstDownTs=0;
 const end=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pz0=null;
