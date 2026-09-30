@@ -140,7 +140,9 @@ body.fs.tpc #tp .tab,body.fs.tpc #tp #tabs button[data-t]{display:none}
     <div class="row" id="pn"><input id="pcol" type="color" value="#e0245e" aria-label="ペンの色"><button class="pk" data-for="pcol" aria-label="スポイト">💧</button><span class="lab" style="min-width:0">太さ</span><input id="ps" type="range" min="2" max="40" value="10" aria-label="ペンの太さ"></div>
     <div class="row"><span class="lab">文字</span><input id="tx" type="text" placeholder="文字を入力" aria-label="文字" style="flex:1;min-width:120px;font:inherit;padding:6px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:inherit"><input id="tcl" type="color" value="#2b2140" aria-label="文字の色"><button class="pk" data-for="tcl" aria-label="スポイト">💧</button></div>
     <div class="row"><button id="addt">＋文字を置く</button><button id="addd">＋白紙レイヤー</button></div>
-    <div class="grp alt" id="adjGroup"><div class="gh">🎨 色調整</div>
+    <div class="grp alt" id="adjGroup"><div class="gh">🎨 色調整</div><div class="row tools"><button class="adjTargetMode on" data-at="current">現在</button><button class="adjTargetMode" data-at="objects">複数オブジェクト</button><button class="adjTargetMode" data-at="layers">複数レイヤー</button></div>
+    <div class="row"><button id="adjTargetAdd">現在を追加</button><button id="adjTargetClear">対象をクリア</button></div>
+    <div class="note" id="adjTargetBox">対象：—</div>
     <div class="row tools"><button id="adjPaint">範囲を塗る</button><button id="adjErase">範囲を消す</button></div>
     <div class="row"><button id="adjAll">全体</button><button id="adjClear">全部消す</button><span class="lab">太さ</span><input id="adjBs" type="range" min="3" max="80" step="1" value="20" aria-label="色調整範囲のブラシ太さ"></div>
     <div class="row"><span class="lab">明るさ</span><input id="adjBr" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjBrv">0</b></div>
@@ -155,7 +157,9 @@ body.fs.tpc #tp .tab,body.fs.tpc #tp #tabs button[data-t]{display:none}
     <div class="row"><button id="adjReset">調整をリセット</button><button id="adjShow">範囲を表示</button></div>
     <div class="note">初期状態では選んでいるオブジェクト全体に適用します。「範囲を塗る」で適用範囲を限定できます。調整値は元画像に焼き込まず保持します。</div></div>
     <div class="note">ペンで描いた線は、通常の「消しゴム」で描いた分だけ消せます（元の絵は残ります）。元の絵そのものを消したいときは「消しゴム（画像ごと）」を使ってください。文字を選んでいる間は、入力欄の変更がその文字に反映されます。</div>
-    <div class="grp" id="lfGroup"><div class="gh">🧩 質感・局所調整</div>
+    <div class="grp" id="lfGroup"><div class="gh">🧩 質感・局所調整</div><div class="row tools"><button class="lfTargetMode on" data-at="current">現在</button><button class="lfTargetMode" data-at="objects">複数オブジェクト</button><button class="lfTargetMode" data-at="layers">複数レイヤー</button></div>
+    <div class="row"><button id="lfTargetAdd">現在を追加</button><button id="lfTargetClear">対象をクリア</button></div>
+    <div class="note" id="lfTargetBox">対象：—</div>
     <div class="row tools"><button id="lfPaint">範囲を塗る</button><button id="lfErase">範囲を消す</button><button id="lfAll">全体</button><button id="lfClear">全部消す</button></div>
     <div class="row"><span class="lab">太さ</span><input id="lfBs" type="range" min="3" max="80" step="1" value="20" aria-label="質感調整範囲のブラシ太さ"><button id="lfShow">範囲を表示</button></div>
     <div class="row"><span class="lab">方式</span><button class="lfEff on" data-lf="clarity">明瞭度</button><button class="lfEff" data-lf="structure">ストラクチャ</button><button class="lfEff" data-lf="texture">テクスチャ</button><button class="lfEff" data-lf="sharp">シャープ</button><button class="lfEff" data-lf="ambience">アンビアンス</button></div>
@@ -268,6 +272,13 @@ const byId=id=>AC.find(a=>a.id===id);
 const EPAL=['🐻','🐥','🧒','🐱','🐶','🍎','🍜','🥤','🥄','🛏️','🎩','⚽'];
 const EDESC={'🐻':'くま','🐥':'ひよこ','🧒':'こども','🐱':'ねこ','🐶':'いぬ','🍎':'りんご','🍜':'めん','🥤':'のみもの','🥄':'スプーン','🛏️':'ベッド','🎩':'ぼうし','⚽':'ボール'};
 const pc=()=>sel;
+function adjustmentTargets(){if(adjTargetMode==='current')return sel?[sel]:[];if(adjTargetMode==='objects')return [...adjTargetIds].map(byId).filter(Boolean);const ids=[...adjLayerIds];return AC.filter(a=>ids.includes(layOf(a).id))}
+function adjustmentTargetText(){const ts=adjustmentTargets();if(!ts.length)return '対象：なし';if(adjTargetMode==='current')return '対象：'+ts[0].name+'（'+layOf(ts[0]).name+'）';if(adjTargetMode==='objects')return '対象：'+ts.map(a=>a.name).join(' / ');return '対象レイヤー：'+[...adjLayerIds].map(id=>LY(id)?.name).filter(Boolean).join(' / ')+'（'+ts.length+'個）'}
+function adjustmentTargetUi(){const a=$('adjTargetBox'),l=$('lfTargetBox');[a,l].forEach(b=>{if(b)b.textContent=adjustmentTargetText()})}
+function setAdjustmentTargetMode(m){adjTargetMode=m;adjustmentTargetUi()}
+function addAdjustmentTarget(){if(!sel)return;if(adjTargetMode==='objects')adjTargetIds.add(sel.id);else if(adjTargetMode==='layers')adjLayerIds.add(layOf(sel).id);adjustmentTargetUi()}
+function clearAdjustmentTargets(){adjTargetIds.clear();adjLayerIds.clear();adjustmentTargetUi()}
+
 
 function add(em){
   if(AC.length>=8)return;
@@ -334,7 +345,7 @@ function lfBrushAt(q,l){
   if(!l||!l.M)return;ensureLF(l);if(!l.lfm)l.lfm=nb();const t=l.M.inverse().transformPoint(new DOMPoint(q.x*dpr,q.y*dpr)),S=S0*l.size,x=(t.x/S+.5)*MR,y=(t.y/S+.5)*MR,g=l.lfm.getContext('2d');
   g.globalCompositeOperation=lfMode==='erase'?'destination-out':'source-over';g.globalAlpha=1;g.fillStyle='#fff';g.lineWidth=lfBrush*2;g.lineCap=g.lineJoin='round';g.beginPath();g.moveTo(lp?lp.x:x,lp?lp.y:y);g.lineTo(x,y);g.stroke();lp={x,y};l.hasLFM=true;l.lfmv=(l.lfmv||0)+1;lfDirty(l);
 }
-function lfAll(on){if(!sel)return;pushUndo();if(!sel.lfm)sel.lfm=nb();const g=sel.lfm.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,MR,MR);if(on){g.fillStyle='#fff';g.fillRect(0,0,MR,MR);sel.hasLFM=true}else sel.hasLFM=false;sel.lfmv=(sel.lfmv||0)+1;lfDirty(sel);paintFrame();lfUi()}
+function lfAll(on){const ts=adjustmentTargets();if(!ts.length)return;pushUndo();ts.forEach(l=>{if(!l.lfm)l.lfm=nb();const g=l.lfm.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,MR,MR);if(on){g.fillStyle='#fff';g.fillRect(0,0,MR,MR);l.hasLFM=true}else l.hasLFM=false;l.lfmv=(l.lfmv||0)+1;lfDirty(l)});paintFrame();lfUi();adjustmentTargetUi()}
 function lfReset(){if(!sel)return;pushUndo();sel.lf=LF_ALL0();lfDirty(sel);paintFrame();lfUi()}
 
 function ensureAdj(l){if(!l.adj)l.adj=ADJ0();return l.adj}
@@ -379,10 +390,10 @@ function adjBrushAt(q,l){
   g.beginPath();g.moveTo(lp?lp.x:x,lp?lp.y:y);g.lineTo(x,y);g.stroke();lp={x,y};l.hasAdjM=true;l.adjmv=(l.adjmv||0)+1;adjDirty(l);
 }
 function adjAll(on){
-  if(!sel)return;pushUndo();if(!sel.adjm)sel.adjm=nb();const g=sel.adjm.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,MR,MR);if(on){g.fillStyle='#fff';g.fillRect(0,0,MR,MR);sel.hasAdjM=true}else sel.hasAdjM=false;sel.adjmv=(sel.adjmv||0)+1;adjDirty(sel);paintFrame();adjUi();
+  const ts=adjustmentTargets();if(!ts.length)return;pushUndo();ts.forEach(l=>{if(!l.adjm)l.adjm=nb();const g=l.adjm.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,MR,MR);if(on){g.fillStyle='#fff';g.fillRect(0,0,MR,MR);l.hasAdjM=true}else l.hasAdjM=false;l.adjmv=(l.adjmv||0)+1;adjDirty(l)});paintFrame();adjUi();adjustmentTargetUi();
 }
 function adjReset(){
-  if(!sel)return;pushUndo();sel.adj=ADJ0();sel._adjDirty=true;sel._adjC=null;sel.adjmv=(sel.adjmv||0);adjDirty(sel);paintFrame();adjUi();
+  const ts=adjustmentTargets();if(!ts.length)return;pushUndo();ts.forEach(l=>{l.adj=ADJ0();l._adjC=null;l.adjmv=(l.adjmv||0);adjDirty(l)});paintFrame();adjUi();adjustmentTargetUi();
 }
 function setImg(l,im){l.img=im;l.cv=null;l.base=null;l.pen=null;l.sd=null;adjDirty(l);if(l.bite)l.bite=nb()}
 function txtCv(t,col){const f='bold 96px sans-serif',m=document.createElement('canvas').getContext('2d');m.font=f;
@@ -783,6 +794,7 @@ function setSel(l){
   $('nm').value=l.name;
   adjUi();
   lfUi();
+  adjustmentTargetUi();
   $('sz').value=l.size;$('szv').textContent='×'+l.size.toFixed(2);$('rt').value=l.rot;$('rtv').textContent=l.rot+'°';$('bl').value=l.blur;$('blv').textContent=l.blur+'px';
   $('em').innerHTML='';
   (l.sp?[]:EPAL).forEach(x=>{const b=document.createElement('button');b.textContent=x;b.setAttribute('aria-label',EDESC[x]||x);armTip(b);b.onclick=()=>{setImg(l,emo(x));chips();$('em').style.display='none'};$('em').appendChild(b)});
@@ -911,14 +923,14 @@ function penAt(q,l){
   g.beginPath();g.moveTo(px,py);g.lineTo(x,y);g.stroke();lp={x,y};bumpBP(l,0,1);recompose(l);
 }
 $('pcol').oninput=e=>{pcol=e.target.value};$('ps').oninput=e=>{pw=+e.target.value};$('es').oninput=e=>{eraseStrength=+e.target.value};
-document.querySelectorAll('#tp [id^="adj"]').forEach(e=>{if(e.type==='range'&&e.id!=='adjBs')e.oninput=()=>{if(!sel)return;const map={adjBr:'brightness',adjCo:'contrast',adjSa:'saturation',adjHu:'hue',adjTe:'temperature',adjHi:'highlights',adjSh:'shadows',adjWh:'whites',adjBl:'blacks'},k=map[e.id];if(!k)return;ensureAdj(sel)[k]=+e.value;adjDirty(sel);adjUi();paintFrame()};if(e.type==='range'&&e.id!=='adjBs')e.onpointerdown=()=>{pushUndo()}});
+document.querySelectorAll('#tp [id^="adj"]').forEach(e=>{if(e.type==='range'&&e.id!=='adjBs')e.oninput=()=>{if(!sel)return;const map={adjBr:'brightness',adjCo:'contrast',adjSa:'saturation',adjHu:'hue',adjTe:'temperature',adjHi:'highlights',adjSh:'shadows',adjWh:'whites',adjBl:'blacks'},k=map[e.id];if(!k)return;adjustmentTargets().forEach(l=>{ensureAdj(l)[k]=+e.value;adjDirty(l)});adjUi();paintFrame();adjustmentTargetUi()};if(e.type==='range'&&e.id!=='adjBs')e.onpointerdown=()=>{pushUndo()}});
 $('adjPaint').onclick=()=>{lfMode='';adjMode=adjMode==='paint'?'':'paint';setTool('move');adjUi();lfUi()};
 $('adjErase').onclick=()=>{lfMode='';adjMode=adjMode==='erase'?'':'erase';setTool('move');adjUi();lfUi()};
 $('adjBs').oninput=e=>{adjBrush=+e.target.value};
 $('adjAll').onclick=()=>adjAll(true);$('adjClear').onclick=()=>adjAll(false);
 $('adjReset').onclick=adjReset;$('adjShow').onclick=()=>{adjShow=!adjShow;adjUi();paintFrame()};
 document.querySelectorAll('.lfEff').forEach(b=>b.onclick=()=>{lfSel=b.dataset.lf;lfUi()});
-[['lfAmt','amount','lfAmtv'],['lfScale','scale','lfScalev'],['lfLocal','locality','lfLocalv'],['lfEdge','edge','lfEdgev'],['lfBal','balance','lfBalv'],['lfSoft','softness','lfSoftv']].forEach(([id,k,v])=>{const e=$(id);e.oninput=()=>{if(!sel)return;ensureLF(sel)[lfSel][k]=+e.value;lfDirty(sel);$(v).textContent=e.value;paintFrame();lfUi()};e.onpointerdown=()=>pushUndo()});
+[['lfAmt','amount','lfAmtv'],['lfScale','scale','lfScalev'],['lfLocal','locality','lfLocalv'],['lfEdge','edge','lfEdgev'],['lfBal','balance','lfBalv'],['lfSoft','softness','lfSoftv']].forEach(([id,k,v])=>{const e=$(id);e.oninput=()=>{adjustmentTargets().forEach(l=>{ensureLF(l)[lfSel][k]=+e.value;lfDirty(l)});$(v).textContent=e.value;paintFrame();lfUi()};e.onpointerdown=()=>pushUndo()});
 $('lfPaint').onclick=()=>{adjMode='';lfMode=lfMode==='paint'?'':'paint';setTool('move');lfUi();adjUi()};
 $('lfErase').onclick=()=>{adjMode='';lfMode=lfMode==='erase'?'':'erase';setTool('move');lfUi();adjUi()};
 $('lfBs').oninput=e=>lfBrush=+e.target.value;$('lfAll').onclick=()=>lfAll(true);$('lfClear').onclick=()=>lfAll(false);$('lfShow').onclick=()=>{lfShow=!lfShow;lfUi();paintFrame()};
@@ -1387,7 +1399,7 @@ function setTool(t){tool=t;paint=t==='mouth'||t==='mouthx';erase=t==='mouthx';bp
   if(t!=='move'&&!seen[t]){seen[t]=1;$('hint').hidden=false;clearTimeout(hto);hto=setTimeout(()=>{$('hint').hidden=true},4500)}}
 const TT={pt:()=>lastPart,pl:()=>'move',mo:()=>'move',bg:()=>'move',ph:()=>'move',wp:()=>'warp',dr:()=>lastPen,ca:()=>'move',lf:()=>'move',mk:()=>lastMask};
 function setTab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.tab===t));document.querySelectorAll('#tabs [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.getElementById('tabs').style.display=t==='ph'?'none':'flex';$('physMode').textContent=t==='ph'?'🎬 アニメーションに戻る':'⚙️ 物理モードに切り替え';if(t==='bg'){const b=document.querySelector('#tabs [data-t="bg"]');if(b)b.classList.remove('flag')}setTool(TT[t]())}
-document.querySelectorAll('#tp [data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+document.querySelectorAll('#tp [data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));document.querySelectorAll('.adjTargetMode').forEach(b=>b.onclick=()=>{document.querySelectorAll('.adjTargetMode').forEach(x=>x.classList.toggle('on',x===b));setAdjustmentTargetMode(b.dataset.at)});$('adjTargetAdd').onclick=addAdjustmentTarget;$('adjTargetClear').onclick=clearAdjustmentTargets;document.querySelectorAll('.lfTargetMode').forEach(b=>b.onclick=()=>{document.querySelectorAll('.lfTargetMode').forEach(x=>x.classList.toggle('on',x===b));setAdjustmentTargetMode(b.dataset.at)});$('lfTargetAdd').onclick=addAdjustmentTarget;$('lfTargetClear').onclick=clearAdjustmentTargets;
 (function(){
   const a=$('adjGroup'),l=$('lfGroup'),ca=$('caTab'),lf=$('lfTab');
   if(a&&ca)ca.appendChild(a);if(l&&lf)lf.appendChild(l);
