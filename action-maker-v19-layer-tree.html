@@ -1098,7 +1098,7 @@ async function loadProj(txt){
     a.img=img||emo('❓');a.cv=null;a.sd=null;a.wo=null;a.dirty=true;a.wd=true;a.wx=0;a.wy=0;a.base=null;a.pen=null;
     for(const k in a.ch)a.ch[k].ph=0;for(const p of a.pins||[])p.ph=0;
     if(o.iscv&&img){a.cv=toC(img);a.img=a.cv}
-    a.mask=toC(mask,MR)||nb();a.bm=bm?toC(bm,MR):null;a.bite=toC(bite,MR)||nb();a.adjm=adjm?toC(adjm,MR):null;a.hasAdjM=!!a.adjm;a.base=null;a.pen=null;a._adjC=null;a._adjRef=null;a._adjDirty=true;if(!a.adj)a.adj=ADJ0();if(a.maskTo===undefined)a.maskTo=(a.kind==='o'&&!!a.to);delete a.iscv;delete a.adjm;list.push(a);
+    a.mask=toC(mask,MR)||nb();a.bm=bm?toC(bm,MR):null;a.bite=toC(bite,MR)||nb();a.adjm=adjm?toC(adjm,MR):null;a.hasAdjM=!!a.adjm;a.base=null;a.pen=null;a._adjC=null;a._adjRef=null;a._adjDirty=true;if(!a.adj)a.adj=ADJ0();if(a.maskTo===undefined)a.maskTo=(a.kind==='o'&&!!a.to);delete a.iscv;list.push(a);
   }
   const bgI=await li(d.BG.img);pushUndo();
   AC=list;uid=d.uid||list.length;
