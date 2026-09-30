@@ -91,7 +91,7 @@ body.fs.tpc #tp .tab,body.fs.tpc #tp #tabs button[data-t]{display:none}
   <div id="grip"></div>
   <div class="row"><button id="physMode">⚙️ 物理モードに切り替え</button></div>
   <div class="row" id="ch1"></div>
-  <div class="row" id="tabs"><button data-t="pl" class="on">配置</button><button data-t="mo">動き</button><button data-t="wp">歪み</button><button data-t="dr">描く</button><button data-t="mk">マスク</button><button data-t="pt">パーツ</button><button data-t="bg">背景・出力</button><button id="tc" aria-label="パネルを開閉">▾</button></div>
+  <div class="row" id="tabs"><button data-t="pl" class="on">配置</button><button data-t="mo">動き</button><button data-t="wp">歪み</button><button data-t="dr">描く</button><button data-t="ca">色調整</button><button data-t="lf">質感・局所</button><button data-t="mk">マスク</button><button data-t="pt">パーツ</button><button data-t="bg">背景・出力</button><button id="tc" aria-label="パネルを開閉">▾</button></div>
 
   <div class="tab on" data-tab="pl">
     <div class="row"><button id="bnd">境界線を表示</button><button id="clrfx">エフェクトを全消去</button></div>
@@ -140,6 +140,11 @@ body.fs.tpc #tp .tab,body.fs.tpc #tp #tabs button[data-t]{display:none}
     <div class="row" id="pn"><input id="pcol" type="color" value="#e0245e" aria-label="ペンの色"><button class="pk" data-for="pcol" aria-label="スポイト">💧</button><span class="lab" style="min-width:0">太さ</span><input id="ps" type="range" min="2" max="40" value="10" aria-label="ペンの太さ"></div>
     <div class="row"><span class="lab">文字</span><input id="tx" type="text" placeholder="文字を入力" aria-label="文字" style="flex:1;min-width:120px;font:inherit;padding:6px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:inherit"><input id="tcl" type="color" value="#2b2140" aria-label="文字の色"><button class="pk" data-for="tcl" aria-label="スポイト">💧</button></div>
     <div class="row"><button id="addt">＋文字を置く</button><button id="addd">＋白紙レイヤー</button></div>
+    <div class="note">ペンで描いた線は、通常の「消しゴム」で描いた分だけ消せます（元の絵は残ります）。元の絵そのものを消したいときは「消しゴム（画像ごと）」を使ってください。文字を選んでいる間は、入力欄の変更がその文字に反映されます。</div>
+  </div>
+  </div>
+
+    <div class="tab" data-tab="ca">
     <div class="grp alt"><div class="gh">🎨 色調整</div>
     <div class="row tools"><button id="adjPaint">範囲を塗る</button><button id="adjErase">範囲を消す</button></div>
     <div class="row"><button id="adjAll">全体</button><button id="adjClear">全部消す</button><span class="lab">太さ</span><input id="adjBs" type="range" min="3" max="80" step="1" value="20" aria-label="色調整範囲のブラシ太さ"></div>
@@ -154,10 +159,24 @@ body.fs.tpc #tp .tab,body.fs.tpc #tp #tabs button[data-t]{display:none}
     <div class="row"><span class="lab">ブラック</span><input id="adjBl" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjBlv">0</b></div>
     <div class="row"><button id="adjReset">調整をリセット</button><button id="adjShow">範囲を表示</button></div>
     <div class="note">初期状態では選んでいるオブジェクト全体に適用します。「範囲を塗る」で適用範囲を限定できます。調整値は元画像に焼き込まず保持します。</div></div>
-    <div class="note">ペンで描いた線は、通常の「消しゴム」で描いた分だけ消せます（元の絵は残ります）。元の絵そのものを消したいときは「消しゴム（画像ごと）」を使ってください。文字を選んでいる間は、入力欄の変更がその文字に反映されます。</div>
   </div>
 
-  <div class="tab" data-tab="mk">
+  <div class="tab" data-tab="lf">
+    <div class="grp" id="lfGroup"><div class="gh">🧩 質感・局所調整</div>
+    <div class="row tools"><button id="lfPaint">範囲を塗る</button><button id="lfErase">範囲を消す</button><button id="lfAll">全体</button><button id="lfClear">全部消す</button></div>
+    <div class="row"><span class="lab">太さ</span><input id="lfBs" type="range" min="3" max="80" step="1" value="20" aria-label="質感調整範囲のブラシ太さ"><button id="lfShow">範囲を表示</button></div>
+    <div class="row"><span class="lab">方式</span><button class="lfEff on" data-lf="clarity">明瞭度</button><button class="lfEff" data-lf="structure">ストラクチャ</button><button class="lfEff" data-lf="texture">テクスチャ</button><button class="lfEff" data-lf="sharp">シャープ</button><button class="lfEff" data-lf="ambience">アンビアンス</button></div>
+    <div class="row"><span class="lab">強さ</span><input id="lfAmt" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="lfAmtv">0</b></div>
+    <div class="row"><span class="lab">空間スケール</span><input id="lfScale" type="range" min="0" max="100" step="1" value="50"><b class="v" id="lfScalev">50</b></div>
+    <div class="row"><span class="lab">局所性</span><input id="lfLocal" type="range" min="0" max="100" step="1" value="50"><b class="v" id="lfLocalv">50</b></div>
+    <div class="row"><span class="lab">エッジ選択</span><input id="lfEdge" type="range" min="0" max="100" step="1" value="50"><b class="v" id="lfEdgev">50</b></div>
+    <div class="row"><span class="lab">階調バランス</span><input id="lfBal" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="lfBalv">0</b></div>
+    <div class="row"><span class="lab">応答の柔らかさ</span><input id="lfSoft" type="range" min="0" max="100" step="1" value="50"><b class="v" id="lfSoftv">50</b></div>
+    <div class="row"><span class="lab">2軸方式</span><canvas id="lfPad" width="220" height="120" aria-label="局所性とエッジ選択を2軸で調整" style="width:min(100%,260px);height:120px;border:2px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none"></canvas></div>
+    <div class="note">「強さ」だけでなく、どの大きさの構造を見るか、局所的に効かせるか、輪郭をどれだけ選ぶか、明暗のどこを重視するか、効果の境界をどれだけ柔らかくするかを独立に決めます。2軸方式は「局所性×エッジ選択」を同時に調整します。5項目は同じ操作系を共有しますが、内部の処理スケールと作用の仕方はそれぞれ異なります。</div>
+    </div>
+
+<div class="tab" data-tab="mk">
     <div class="grp"><div class="gh">🖌 マスク（他のオブジェクトを隠して消す）</div>
     <div class="row tools"><button data-tool="mouth" class="on">🖌 マスク塗り</button><button data-tool="mouthx">マスクを消す</button></div>
     <div class="row" id="tb"><span class="lab">太さ</span><input id="bs" type="range" min="3" max="40" step="1" value="14" aria-label="ブラシの太さ"><button id="ca">全部消す</button></div>
@@ -245,7 +264,7 @@ const mkc=()=>({m:cc0(),r:cc0(),s:cc0()});
 const Z={s:1,x:0,y:0};
 const foldSet=new Set(),lyPop=document.getElementById('lypop');
 let LAYERS=[{id:1,name:'レイヤー1',visible:true,locked:false}],curLid=1,physHideEx=true,noFrame=false,wAct=false,tgtBak=null;
-let hk=0,fc=0,warpMs=0,dirtyProj=false,bpn=false,berase=false,psn=false,serase=false,pbox=false,showBm=false,cmp=false,wmode='add',dragOff=null,eraseStrength=1,showBounds=false,tool='move',wt='b',wg=null,pl=null,tm=null,pw=10,pcol='#e0245e',AC=[],sel=null,uid=0,last=0,paused=false,gs=1,guide=false,editing=false,tgt=null,paint=false,erase=false,brushMask=14,brushBlur=14,brushParts=14,adjMode='',adjBrush=20,adjShow=false,lp=null,drawing=false,pid=-1,pan=null,pz0=null,zshown=false,boxStart=null,boxEnd=null;
+let hk=0,fc=0,warpMs=0,dirtyProj=false,bpn=false,berase=false,psn=false,serase=false,pbox=false,showBm=false,cmp=false,wmode='add',dragOff=null,eraseStrength=1,showBounds=false,tool='move',wt='b',wg=null,pl=null,tm=null,pw=10,pcol='#e0245e',AC=[],sel=null,uid=0,last=0,paused=false,gs=1,guide=false,editing=false,tgt=null,paint=false,erase=false,brushMask=14,brushBlur=14,brushParts=14,adjMode='',adjBrush=20,adjShow=false,lfMode='',lfBrush=20,lfShow=false,lfSel='clarity',lp=null,drawing=false,pid=-1,pan=null,pz0=null,zshown=false,boxStart=null,boxEnd=null;
 const ptrs=new Map();
 const byId=id=>AC.find(a=>a.id===id);
 const EPAL=['🐻','🐥','🧒','🐱','🐶','🍎','🍜','🥤','🥄','🛏️','🎩','⚽'];
@@ -255,10 +274,71 @@ const pc=()=>sel;
 function add(em){
   if(AC.length>=8)return;
   const id=++uid,a={id,name:'オブジェクト'+id,img:emo(em||EPAL[AC.length%EPAL.length]),fx:.2+.2*(AC.length%4),fy:.6+.09*Math.floor(AC.length/4),
-    size:1,pv:0,face:1,rot:0,rr:0,ch:mkc(),to:null,att:false,maskTo:false,ox:.5,oy:.05,front:true,keep:0,eat:false,bite:nb(),mask:nb(),hasMask:false,wx:0,wy:0,pins:[],blur:0,bm:null,hasBm:false,bmOn:false,adj:null,adjm:null,hasAdjM:false};
+    size:1,pv:0,face:1,rot:0,rr:0,ch:mkc(),to:null,att:false,maskTo:false,ox:.5,oy:.05,front:true,keep:0,eat:false,bite:nb(),mask:nb(),hasMask:false,wx:0,wy:0,pins:[],blur:0,bm:null,hasBm:false,bmOn:false,adj:null,adjm:null,hasAdjM:false,lf:null,lfm:null,hasLFM:false};
   AC.push(a);setSel(a);return a;
 }
 const ADJ0=()=>({brightness:0,contrast:0,saturation:0,hue:0,temperature:0,highlights:0,shadows:0,whites:0,blacks:0});
+const LF_KEYS=['clarity','structure','texture','sharp','ambience'];
+const LF0=()=>({amount:0,scale:50,locality:50,edge:50,balance:0,softness:50});
+const LF_ALL0=()=>Object.fromEntries(LF_KEYS.map(k=>[k,LF0()]));
+function ensureLF(l){if(!l.lf)l.lf=LF_ALL0();for(const k of LF_KEYS)if(!l.lf[k])l.lf[k]=LF0();return l.lf}
+function lfActive(l){const f=ensureLF(l);return LF_KEYS.some(k=>Object.values(f[k]).some(v=>Math.abs(v)>0.0001))}
+function lfDirty(l){l._lfDirty=true;l._lfC=null;l._lfRef=null;l.dirty=true;l.wd=true}
+function lfMaskData(l){return l.lfm&&l.hasLFM?l.lfm.getContext('2d').getImageData(0,0,MR,MR).data:null}
+function lfBlur(im,rad){const w=im.naturalWidth||im.width||0,h=im.naturalHeight||im.height||0,c=allocCanvas(w,h,'局所調整ぼかし'),g=c.getContext('2d');g.filter='blur('+Math.max(.1,rad).toFixed(2)+'px)';g.drawImage(im,0,0);g.filter='none';return c}
+function lfSmooth(x,soft){const t=Math.max(0,Math.min(1,(x-soft*.45)/(1-soft*.45+0.0001)));return t*t*(3-2*t)}
+function lfApplyEffect(c,key,f){
+  const w=c.width,h=c.height,src=c.getContext('2d').getImageData(0,0,w,h),p=src.data,mn=Math.max(1,Math.min(w,h)),sc=f.scale/100,loc=f.locality/100,edge=f.edge/100,bal=f.balance/100,soft=f.softness/100,amt=f.amount/100;
+  if(Math.abs(amt)<.0001)return c;
+  let maxFrac=key==='texture'?.018:key==='sharp'?.028:key==='clarity'?.07:key==='structure'?.16:.12,rad=Math.max(1,mn*(.003+maxFrac*sc));
+  if(key==='sharp')rad=Math.max(.5,mn*(.0015+.022*sc));
+  const b1=lfBlur(c,rad),bp=b1.getContext('2d').getImageData(0,0,w,h).data,b2=(loc>.55||key==='ambience')?lfBlur(c,Math.max(rad*1.8,rad+2)):null,bp2=b2?b2.getContext('2d').getImageData(0,0,w,h).data:null,out=c.getContext('2d').createImageData(w,h),op=out.data;
+  for(let i=0;i<p.length;i+=4){
+    const r=p[i]/255,g=p[i+1]/255,b=p[i+2]/255,L=.2126*r+.7152*g+.0722*b,BL=.2126*bp[i]/255+.7152*bp[i+1]/255+.0722*bp[i+2]/255,BL2=bp2?.[i]===undefined?BL:(.2126*bp2[i]/255+.7152*bp2[i+1]/255+.0722*bp2[i+2]/255);
+    let detail=L-BL,broad=L-BL2;detail=detail*(1-loc)+broad*loc;
+    const gate=(1-edge)+edge*lfSmooth(Math.min(1,Math.abs(detail)*9),soft),side=1+bal*((L-.5)*2);let rr=r,gg=g,bb=b;
+    if(key==='ambience'){
+      const light=amt*(1-bal)*.5,color=amt*(1+bal)*.5,localMix=(1-loc)+loc*Math.min(1,Math.abs(detail)*7),lift=light*.22*(.72+.28*(1-Math.abs(L-.5)*2))+detail*localMix*amt*.22;
+      rr=Math.max(0,Math.min(1,rr+lift));gg=Math.max(0,Math.min(1,gg+lift));bb=Math.max(0,Math.min(1,bb+lift));
+      const av=1+color*.45*localMix,al=.2126*rr+.7152*gg+.0722*bb;rr=Math.max(0,Math.min(1,al+(rr-al)*av));gg=Math.max(0,Math.min(1,al+(gg-al)*av));bb=Math.max(0,Math.min(1,al+(bb-al)*av));
+    }else{
+      const k=key==='sharp'?2.7:key==='texture'?2:key==='clarity'?1.55:1.15,gain=1+detail*amt*k*gate*side;
+      rr=Math.max(0,Math.min(1,rr*gain));gg=Math.max(0,Math.min(1,gg*gain));bb=Math.max(0,Math.min(1,bb*gain));
+      if(key==='sharp'){const th=soft*.075,d=Math.max(0,Math.abs(detail)-th)*Math.sign(detail),halo=1-soft*.75;rr=Math.max(0,Math.min(1,r+d*amt*k*halo*gate));gg=Math.max(0,Math.min(1,g+d*amt*k*halo*gate));bb=Math.max(0,Math.min(1,b+d*amt*k*halo*gate))}
+    }
+    op[i]=Math.round(rr*255);op[i+1]=Math.round(gg*255);op[i+2]=Math.round(bb*255);op[i+3]=p[i+3];
+  }
+  c.getContext('2d').putImageData(out,0,0);return c;
+}
+function localFxSource(l){
+  const base=adjSource(l);if(!base||!lfActive(l))return base;
+  const iw=base.naturalWidth||base.width||0,ih=base.naturalHeight||base.height||0;if(!iw||!ih)return base;
+  const mask=lfMaskData(l);
+  if(l._lfC&&l._lfC.width===iw&&l._lfC.height===ih&&!l._lfDirty&&l._lfRef===base)return l._lfC;
+  let c=allocCanvas(iw,ih,'質感・局所調整'),g=c.getContext('2d');g.drawImage(base,0,0);
+  const original=allocCanvas(iw,ih,'質感・局所調整元');original.getContext('2d').drawImage(c,0,0);
+  for(const key of LF_KEYS)c=lfApplyEffect(c,key,ensureLF(l)[key]);
+  if(mask){const d=c.getContext('2d').getImageData(0,0,iw,ih),o=original.getContext('2d').getImageData(0,0,iw,ih),p=d.data,op=o.data;
+    for(let y=0;y<ih;y++)for(let x=0;x<iw;x++){const mi=(Math.min(MR-1,Math.max(0,Math.floor(x/iw*MR)))+Math.min(MR-1,Math.max(0,Math.floor(y/ih*MR)))*MR)*4,m=mask[mi+3]/255,i=(x+y*iw)*4;p[i]=Math.round(op[i]*(1-m)+p[i]*m);p[i+1]=Math.round(op[i+1]*(1-m)+p[i+1]*m);p[i+2]=Math.round(op[i+2]*(1-m)+p[i+2]*m)}
+    c.getContext('2d').putImageData(d,0,0);
+  }
+  l._lfC=c;l._lfRef=base;l._lfDirty=false;return c;
+}
+function lfUi(){
+  if(!sel)return;const f=ensureLF(sel),v=f[lfSel]||LF0(),set=(id,x)=>{$(id).value=x;$(id+'v').textContent=x};
+  set('lfAmt',v.amount);set('lfScale',v.scale);set('lfLocal',v.locality);set('lfEdge',v.edge);set('lfBal',v.balance);set('lfSoft',v.softness);
+  LF_KEYS.forEach(k=>{const b=document.querySelector('.lfEff[data-lf="'+k+'"]');if(b)b.classList.toggle('on',k===lfSel)});
+  $('lfPaint').classList.toggle('on',lfMode==='paint');$('lfErase').classList.toggle('on',lfMode==='erase');$('lfShow').classList.toggle('on',lfShow);
+  const pc=$('lfPad'),cx=pc.getContext('2d'),w=pc.width,h=pc.height;cx.clearRect(0,0,w,h);cx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--line');cx.strokeRect(1,1,w-2,h-2);cx.beginPath();cx.moveTo(0,h-v.edge*h);cx.lineTo(w,h-v.edge*h);cx.moveTo(v.locality*w,0);cx.lineTo(v.locality*w,h);cx.stroke();cx.beginPath();cx.arc(v.locality*w,h-v.edge*h,7,0,Math.PI*2);cx.stroke();
+}
+function lfPadSet(e){if(!sel)return;const r=$('lfPad').getBoundingClientRect(),x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height)),v=ensureLF(sel)[lfSel];v.locality=Math.round(x*100);v.edge=Math.round((1-y)*100);lfDirty(sel);lfUi();paintFrame()}
+function lfBrushAt(q,l){
+  if(!l||!l.M)return;ensureLF(l);if(!l.lfm)l.lfm=nb();const t=l.M.inverse().transformPoint(new DOMPoint(q.x*dpr,q.y*dpr)),S=S0*l.size,x=(t.x/S+.5)*MR,y=(t.y/S+.5)*MR,g=l.lfm.getContext('2d');
+  g.globalCompositeOperation=lfMode==='erase'?'destination-out':'source-over';g.globalAlpha=1;g.fillStyle='#fff';g.lineWidth=lfBrush*2;g.lineCap=g.lineJoin='round';g.beginPath();g.moveTo(lp?lp.x:x,lp?lp.y:y);g.lineTo(x,y);g.stroke();lp={x,y};l.hasLFM=true;l.lfmv=(l.lfmv||0)+1;lfDirty(l);
+}
+function lfAll(on){if(!sel)return;pushUndo();if(!sel.lfm)sel.lfm=nb();const g=sel.lfm.getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,MR,MR);if(on){g.fillStyle='#fff';g.fillRect(0,0,MR,MR);sel.hasLFM=true}else sel.hasLFM=false;sel.lfmv=(sel.lfmv||0)+1;lfDirty(sel);paintFrame();lfUi()}
+function lfReset(){if(!sel)return;pushUndo();sel.lf=LF_ALL0();lfDirty(sel);paintFrame();lfUi()}
+
 function ensureAdj(l){if(!l.adj)l.adj=ADJ0();return l.adj}
 function adjActive(l){const a=ensureAdj(l);return Object.values(a).some(v=>Math.abs(v)>0.0001)}
 function adjSource(l){
@@ -288,7 +368,7 @@ function adjSource(l){
   }
   g.putImageData(d,0,0);l._adjC=c;l._adjRef=im;l._adjDirty=false;return c;
 }
-function adjDirty(l){l._adjDirty=true;l._adjC=null;l.dirty=true;l.wd=true}
+function adjDirty(l){l._adjDirty=true;l._adjC=null;l.dirty=true;l.wd=true;lfDirty(l)}
 function adjUi(){
   if(!sel)return;const a=ensureAdj(sel),map=[['adjBr','brightness','adjBrv'],['adjCo','contrast','adjCov'],['adjSa','saturation','adjSav'],['adjHu','hue','adjHuv'],['adjTe','temperature','adjTev'],['adjHi','highlights','adjHiv'],['adjSh','shadows','adjShv'],['adjWh','whites','adjWhv'],['adjBl','blacks','adjBlv']];
   map.forEach(([id,k,v])=>{$(id).value=a[k];$(v).textContent=k==='hue'?a[k]+'°':a[k]});
@@ -313,7 +393,7 @@ function txtCv(t,col){const f='bold 96px sans-serif',m=document.createElement('c
 function addSpecial(k){
   if(AC.length>=8)return;
   const id=++uid,c=document.createElement('canvas'),t=k==='t';
-  const a={id,sp:k,name:(t?'文字':'描画')+id,img:c,fx:.5,fy:t?.25:.5,size:t?1.6:3.2,pv:0,face:1,rot:0,rr:0,ch:mkc(),to:null,att:false,maskTo:false,ox:.5,oy:.05,front:true,keep:0,eat:false,bite:nb(),mask:nb(),hasMask:false,wx:0,wy:0,pins:[],blur:0,bm:null,hasBm:false,bmOn:false,adj:null,adjm:null,hasAdjM:false};
+  const a={id,sp:k,name:(t?'文字':'描画')+id,img:c,fx:.5,fy:t?.25:.5,size:t?1.6:3.2,pv:0,face:1,rot:0,rr:0,ch:mkc(),to:null,att:false,maskTo:false,ox:.5,oy:.05,front:true,keep:0,eat:false,bite:nb(),mask:nb(),hasMask:false,wx:0,wy:0,pins:[],blur:0,bm:null,hasBm:false,bmOn:false,adj:null,adjm:null,hasAdjM:false,lf:null,lfm:null,hasLFM:false};
   if(t){a.txt=$('tx').value||'こんにちは';a.tcol=$('tcl').value;a.img=txtCv(a.txt,a.tcol)}else{c.width=c.height=512;a.cv=c}
   AC.push(a);setSel(a);return a;
 }
@@ -336,7 +416,7 @@ function fit(){const fs=document.body.classList.contains('fs'),r=$('wrap').getBo
 const FILT='filter' in CanvasRenderingContext2D.prototype;
 function img(l,S,b){
   if(b===undefined){if(l.hasBm&&l.blur>0&&l.bm&&!cmp)return blurRegion(l,S);b=0}
-  const im=l.wo||adjSource(l);let dw,dh;
+  const im=l.wo||localFxSource(l);let dw,dh;
   if(l.wo){dw=dh=S*WX}else{const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,k=Math.min(S/iw,S/ih);dw=iw*k;dh=ih*k}
   if(b>0&&FILT){ctx.save();ctx.filter='blur('+b+'px)';ctx.drawImage(im,-dw/2,-dh/2,dw,dh);ctx.restore()}
   else if(b>0){ctx.save();for(let i=0;i<9;i++){const a=i*.7854,r=i?b:0;ctx.globalAlpha=1/(i+1);ctx.drawImage(im,-dw/2+Math.cos(a)*r,-dh/2+Math.sin(a)*r,dw,dh)}ctx.restore()}
@@ -379,7 +459,7 @@ function draw(l,x,y,m,kids){
     if(tl.length)maskedImg(l,S,tl);else img(l,S);
     if(showBounds)drawBounds(l,S);
     if(paint&&l===pc()){ctx.globalAlpha=.55;ctx.drawImage(l.mask,-S/2,-S/2,S,S)}
-    if(adjShow&&l===sel&&l.hasAdjM&&l.adjm){ctx.save();ctx.globalAlpha=.22;ctx.drawImage(l.adjm,-S/2,-S/2,S,S);ctx.restore()}
+    if(adjShow&&l===sel&&l.hasAdjM&&l.adjm){ctx.save();ctx.globalAlpha=.22;ctx.drawImage(l.adjm,-S/2,-S/2,S,S);ctx.restore()}if(lfShow&&l===sel&&l.hasLFM&&l.lfm){ctx.save();ctx.globalAlpha=.22;ctx.drawImage(l.lfm,-S/2,-S/2,S,S);ctx.restore()}
     if(l===sel){if(l.hasBm&&l.bm&&(bpn||showBm))ovl(l,S,'bm','bmv','#3b82f6');if((psn||pbox)&&l.hasSm&&l.sm)ovl(l,S,'sm','smv','#ff5d8f');if(pbox&&drawing&&boxStart&&boxEnd){ctx.save();ctx.globalAlpha=.8;ctx.strokeStyle='#ff5d8f';ctx.lineWidth=2;ctx.setLineDash([6,4]);const x=Math.min(boxStart.u,boxEnd.u)*S-.5*S,y=Math.min(boxStart.v,boxEnd.v)*S-.5*S,w=Math.abs(boxEnd.u-boxStart.u)*S,h=Math.abs(boxEnd.v-boxStart.v)*S;ctx.strokeRect(x,y,w,h);ctx.restore()}if(tool==='warp'&&(showPins||wg||performance.now()<flashUntil))drawPins(l,S)}
     ctx.restore()};
   kids?kids(self):self();
@@ -588,6 +668,7 @@ function pdown(e){
   pushUndo();pid=e.pointerId;const p=wp(q);
   if(rulerOn){drawing=true;rulerPt={x0:p.x,y0:p.y,x1:p.x,y1:p.y};return}
   if(paint){if(blocked(sel))return;drawing=true;lp=null;stroke(q);return}
+  if(lfMode){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;lfBrushAt(q,pl);return}
   if(adjMode){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;adjBrushAt(q,pl);return}
   if(pbox){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;boxStart=loc(pl,q);boxEnd={...boxStart};return}
   if(bpn||psn){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;strokeSel(q);return}
@@ -611,7 +692,7 @@ cv.addEventListener('pointermove',e=>{
     Z.s=s;Z.x=m.x-s*w0.x;Z.y=m.y-s*w0.y;return}
   if(e.pointerId!==pid)return;
   if(rulerOn&&rulerPt){const p=wp(q);rulerPt.x1=p.x;rulerPt.y1=p.y;return}
-  if(drawing)(paint?stroke(q):adjMode?adjBrushAt(q,pl):pbox?(boxEnd=loc(pl,q)):((bpn||psn)?strokeSel(q):penAt(q,pl)));else if(wg)wmove(q);else if(tgt){const p=wp(q);mv(p);if(tgt.phys){thist.push({t:performance.now(),x:p.x,y:p.y});if(thist.length>6)thist.shift()}}else if(pan){Z.x=q.x-pan.x;Z.y=q.y-pan.y}
+  if(drawing)(paint?stroke(q):lfMode?lfBrushAt(q,pl):adjMode?adjBrushAt(q,pl):pbox?(boxEnd=loc(pl,q)):((bpn||psn)?strokeSel(q):penAt(q,pl)));else if(wg)wmove(q);else if(tgt){const p=wp(q);mv(p);if(tgt.phys){thist.push({t:performance.now(),x:p.x,y:p.y});if(thist.length>6)thist.shift()}}else if(pan){Z.x=q.x-pan.x;Z.y=q.y-pan.y}
 });
 let thist=[],firstDownTs=0;
 const end=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pz0=null;
@@ -703,6 +784,7 @@ function setSel(l){
   sel=l;chips();frame(l);
   $('nm').value=l.name;
   adjUi();
+  lfUi();
   $('sz').value=l.size;$('szv').textContent='×'+l.size.toFixed(2);$('rt').value=l.rot;$('rtv').textContent=l.rot+'°';$('bl').value=l.blur;$('blv').textContent=l.blur+'px';
   $('em').innerHTML='';
   (l.sp?[]:EPAL).forEach(x=>{const b=document.createElement('button');b.textContent=x;b.setAttribute('aria-label',EDESC[x]||x);armTip(b);b.onclick=()=>{setImg(l,emo(x));chips();$('em').style.display='none'};$('em').appendChild(b)});
@@ -837,6 +919,15 @@ $('adjErase').onclick=()=>{adjMode=adjMode==='erase'?'':'erase';setTool('move');
 $('adjBs').oninput=e=>{adjBrush=+e.target.value};
 $('adjAll').onclick=()=>adjAll(true);$('adjClear').onclick=()=>adjAll(false);
 $('adjReset').onclick=adjReset;$('adjShow').onclick=()=>{adjShow=!adjShow;adjUi();paintFrame()};
+document.querySelectorAll('.lfEff').forEach(b=>b.onclick=()=>{lfSel=b.dataset.lf;lfUi()});
+[['lfAmt','amount','lfAmtv'],['lfScale','scale','lfScalev'],['lfLocal','locality','lfLocalv'],['lfEdge','edge','lfEdgev'],['lfBal','balance','lfBalv'],['lfSoft','softness','lfSoftv']].forEach(([id,k,v])=>{const e=$(id);e.oninput=()=>{if(!sel)return;ensureLF(sel)[lfSel][k]=+e.value;lfDirty(sel);$(v).textContent=e.value;paintFrame();lfUi()};e.onpointerdown=()=>pushUndo()});
+$('lfPaint').onclick=()=>{lfMode=lfMode==='paint'?'':'paint';adjMode='';setTool('move');lfUi();adjUi()};
+$('lfErase').onclick=()=>{lfMode=lfMode==='erase'?'':'erase';adjMode='';setTool('move');lfUi();adjUi()};
+$('lfBs').oninput=e=>lfBrush=+e.target.value;$('lfAll').onclick=()=>lfAll(true);$('lfClear').onclick=()=>lfAll(false);$('lfShow').onclick=()=>{lfShow=!lfShow;lfUi();paintFrame()};
+$('lfPad').addEventListener('pointerdown',e=>{try{$('lfPad').setPointerCapture(e.pointerId)}catch(_){};pushUndo();lfPadSet(e)});
+$('lfPad').addEventListener('pointermove',e=>{if(e.buttons)lfPadSet(e)});
+$('lfPad').addEventListener('pointerup',e=>{try{$('lfPad').releasePointerCapture(e.pointerId)}catch(_){}});
+
 $('tx').oninput=e=>{if(sel.txt!=null){sel.txt=e.target.value;setImg(sel,txtCv(sel.txt,sel.tcol))}};
 $('tcl').oninput=e=>{if(sel.txt!=null){sel.tcol=e.target.value;setImg(sel,txtCv(sel.txt,sel.tcol))}};
 
@@ -864,7 +955,7 @@ function warpFrame(l){
   if(!(anim||l.wd||l.dirty))return;
   if(anim&&!l.wd&&!l.dirty&&wskip>1&&fc%wskip)return;
   if(l.dirty||!l.sd){
-    const t=document.createElement('canvas');t.width=t.height=R;const g=t.getContext('2d'),im=adjSource(l),iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
+    const t=document.createElement('canvas');t.width=t.height=R;const g=t.getContext('2d'),im=localFxSource(l),iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
     if(!iw||!ih)return;const B=R/WX,k=Math.min(B/iw,B/ih);g.drawImage(im,(R-iw*k)/2,(R-ih*k)/2,iw*k,ih*k);l.sd=g.getImageData(0,0,R,R).data;l.dirty=false;
   }
   l.wd=false;
@@ -1042,10 +1133,10 @@ $('snap').onclick=snapImg;$('sn2').onclick=snapImg;
 
 /* ===== 元に戻す / やり直す ===== */
 const cloneC=c=>{const t=document.createElement('canvas');t.width=c.width;t.height=c.height;t.getContext('2d').drawImage(c,0,0);return t};
-const SKIP=new Set(['img','cv','mask','bm','sm','bite','base','pen','adjm','_adjC','wo','wg','od','sd','F','M','wx','wy','ph','dirty','wd']);
+const SKIP=new Set(['img','cv','mask','bm','sm','bite','base','pen','adjm','lfm','_adjC','_lfC','wo','wg','od','sd','F','M','wx','wy','ph','dirty','wd']);
 function frz(a,k,vk){const c=a[k];if(!c)return null;const f=a['_f'+k],v=a[vk]||0;if(f&&f.v===v)return f.c;const t=cloneC(c);a['_f'+k]={v,c:t};return t}
 function snap(){
-  const acs=AC.map(a=>({p:JSON.parse(JSON.stringify(a,(k,v)=>(SKIP.has(k)||k[0]==='_')?undefined:v)),img:a.cv?null:a.img,cv:a.base?null:frz(a,'cv','cvv'),base:frz(a,'base','bsv'),pen:frz(a,'pen','pnv'),mask:frz(a,'mask','mkv'),bm:frz(a,'bm','bmv'),bite:a.bite,adjm:frz(a,'adjm','adjmv')}));
+  const acs=AC.map(a=>({p:JSON.parse(JSON.stringify(a,(k,v)=>(SKIP.has(k)||k[0]==='_')?undefined:v)),img:a.cv?null:a.img,cv:a.base?null:frz(a,'cv','cvv'),base:frz(a,'base','bsv'),pen:frz(a,'pen','pnv'),mask:frz(a,'mask','mkv'),bm:frz(a,'bm','bmv'),bite:a.bite,adjm:frz(a,'adjm','adjmv'),lfm:frz(a,'lfm','lfmv')}));
   const B={m:BG.m,c:BG.c,c2:BG.c2,b:BG.b,img:BG.img,v:BG.v||0};
   return{acs,B,L:LAYERS.map(y=>({...y})),cl:curLid,sel:AC.indexOf(sel),sig:JSON.stringify([acs.map(x=>x.p),B.m,B.c,B.c2,B.b,B.v,!!B.img,LAYERS])};
 }
@@ -1053,8 +1144,8 @@ function bgUi(){$('bg1').value=BG.c;$('bg2').value=BG.c2;$('bgm').value=BG.m;$('
 function restore(sn){
   AC=sn.acs.map(s=>{const a=s.p;for(const k in a.ch)a.ch[k].ph=0;for(const p of a.pins)p.ph=0;
     a.img=s.img;a.cv=null;if(s.cv){a.cv=cloneC(s.cv);a.img=a.cv}
-    a.mask=s.mask?cloneC(s.mask):nb();a.bm=s.bm?cloneC(s.bm):null;a.bite=s.bite||nb();a.adjm=s.adjm?cloneC(s.adjm):null;a.hasAdjM=!!a.adjm;
-    a.sd=null;a.wo=null;a.base=null;a.pen=null;a._adjC=null;a._adjRef=null;a._adjDirty=true;a.dirty=true;a.wd=true;a.wx=0;a.wy=0;
+    a.mask=s.mask?cloneC(s.mask):nb();a.bm=s.bm?cloneC(s.bm):null;a.bite=s.bite||nb();a.adjm=s.adjm?cloneC(s.adjm):null;a.hasAdjM=!!a.adjm;a.lfm=s.lfm?cloneC(s.lfm):null;a.hasLFM=!!a.lfm;
+    a.sd=null;a.wo=null;a.base=null;a.pen=null;a._adjC=null;a._adjRef=null;a._adjDirty=true;a._lfC=null;a._lfRef=null;a._lfDirty=true;a.dirty=true;a.wd=true;a.wx=0;a.wy=0;
     if(s.base){a.base=cloneC(s.base);a._bw=a.base.width;a._bh=a.base.height;a.pen=s.pen?cloneC(s.pen):null;recompose(a)}
     return a});
   AC.forEach(a=>{if(a.syncTo!=null){const t=byId(a.syncTo);if(t)a.pins=t.pins}});
@@ -1087,18 +1178,18 @@ function u2(c){if(!c)return null;const w=c.naturalWidth||c.width,h=c.naturalHeig
 function ser(){
   return JSON.stringify({v:1,uid,sel:AC.indexOf(sel),LAY:{L:LAYERS,cur:curLid,hx:physHideEx},BG:{...BG,img:u2(BG.img)},
     AC:AC.map(a=>{const o=JSON.parse(JSON.stringify(a,(k,v)=>(SKIP.has(k)||k[0]==='_')?undefined:v));
-      o.img=u2(a.img);o.iscv=!!a.cv;o.mask=a.mask&&a.hasMask?u2(a.mask):null;o.bm=a.bm&&a.hasBm?u2(a.bm):null;o.bite=a.bite&&a.eat?u2(a.bite):null;o.adjm=a.adjm&&a.hasAdjM?u2(a.adjm):null;return o})});
+      o.img=u2(a.img);o.iscv=!!a.cv;o.mask=a.mask&&a.hasMask?u2(a.mask):null;o.bm=a.bm&&a.hasBm?u2(a.bm):null;o.bite=a.bite&&a.eat?u2(a.bite):null;o.adjm=a.adjm&&a.hasAdjM?u2(a.adjm):null;o.lfm=a.lfm&&a.hasLFM?u2(a.lfm):null;return o})});
 }
 const li=src=>new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
 const toC=(im,w)=>{if(!im)return null;const c=document.createElement('canvas');c.width=w||im.width;c.height=w||im.height;c.getContext('2d').drawImage(im,0,0);return c};
 async function loadProj(txt){
   const d=JSON.parse(txt),list=[];
   for(const o of d.AC){
-    const[img,mask,bm,bite,adjm]=await Promise.all([li(o.img),li(o.mask),li(o.bm),li(o.bite),li(o.adjm)]),a={...o};
+    const[img,mask,bm,bite,adjm,lfm]=await Promise.all([li(o.img),li(o.mask),li(o.bm),li(o.bite),li(o.adjm),li(o.lfm)]),a={...o};
     a.img=img||emo('❓');a.cv=null;a.sd=null;a.wo=null;a.dirty=true;a.wd=true;a.wx=0;a.wy=0;a.base=null;a.pen=null;
     for(const k in a.ch)a.ch[k].ph=0;for(const p of a.pins||[])p.ph=0;
     if(o.iscv&&img){a.cv=toC(img);a.img=a.cv}
-    a.mask=toC(mask,MR)||nb();a.bm=bm?toC(bm,MR):null;a.bite=toC(bite,MR)||nb();a.adjm=adjm?toC(adjm,MR):null;a.hasAdjM=!!a.adjm;a.base=null;a.pen=null;a._adjC=null;a._adjRef=null;a._adjDirty=true;if(!a.adj)a.adj=ADJ0();if(a.maskTo===undefined)a.maskTo=(a.kind==='o'&&!!a.to);delete a.iscv;list.push(a);
+    a.mask=toC(mask,MR)||nb();a.bm=bm?toC(bm,MR):null;a.bite=toC(bite,MR)||nb();a.adjm=adjm?toC(adjm,MR):null;a.hasAdjM=!!a.adjm;a.lfm=lfm?toC(lfm,MR):null;a.hasLFM=!!a.lfm;a.base=null;a.pen=null;a._adjC=null;a._adjRef=null;a._adjDirty=true;if(!a.adj)a.adj=ADJ0();if(a.maskTo===undefined)a.maskTo=(a.kind==='o'&&!!a.to);delete a.iscv;list.push(a);
   }
   const bgI=await li(d.BG.img);pushUndo();
   AC=list;uid=d.uid||list.length;
@@ -1296,7 +1387,7 @@ function setTool(t){tool=t;paint=t==='mouth'||t==='mouthx';erase=t==='mouthx';bp
   if(pcolEl)pcolEl.style.display=t==='pen'?'':'none';
   if(pcolPk)pcolPk.style.display=t==='pen'?'':'none';
   if(t!=='move'&&!seen[t]){seen[t]=1;$('hint').hidden=false;clearTimeout(hto);hto=setTimeout(()=>{$('hint').hidden=true},4500)}}
-const TT={pt:()=>lastPart,pl:()=>'move',mo:()=>'move',bg:()=>'move',ph:()=>'move',wp:()=>'warp',dr:()=>lastPen,mk:()=>lastMask};
+const TT={pt:()=>lastPart,pl:()=>'move',mo:()=>'move',bg:()=>'move',ph:()=>'move',wp:()=>'warp',dr:()=>lastPen,ca:()=>'move',lf:()=>'move',mk:()=>lastMask};
 function setTab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.tab===t));document.querySelectorAll('#tabs [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.getElementById('tabs').style.display=t==='ph'?'none':'flex';$('physMode').textContent=t==='ph'?'🎬 アニメーションに戻る':'⚙️ 物理モードに切り替え';if(t==='bg'){const b=document.querySelector('#tabs [data-t="bg"]');if(b)b.classList.remove('flag')}setTool(TT[t]())}
 document.querySelectorAll('#tp [data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
 $('tc').onclick=()=>{const c=document.body.classList.toggle('tpc');$('tc').textContent=c?'▴':'▾'};
