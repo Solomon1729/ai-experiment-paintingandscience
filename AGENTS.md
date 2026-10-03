@@ -84,6 +84,7 @@ node -e "const fs=require('fs');const s=fs.readFileSync(process.argv[1],'utf8');
 - 開発時は`src/`の該当断片だけを編集し、`node tools/build.js`で`action-maker-v19-layer-tree.html`を生成する。結合HTMLは**生成物**であり、手で直さない。
 - 各変更で、結合→`node tools/build.js --check`→構文チェック→`python3 headless_regression.py`を実行する。AIはソース断片と結合HTMLの**両方**を渡し、ユーザーは両方をGitHubに上げる。
 - Codexなど他のAIの成果は、**パッチファイルでなくブランチ／PRで受け取る**（2026-10-04：`.patch`をWebで受け渡したら全行の改行がCRLFに変わり、`git apply`が通らなかった）。受け取ったら、Claudeが先にバイト一致・構文・回帰を検証してからマージする。
+- **自動検査**（台帳Z-56）：`.github/workflows/check.yml`が、pushとPRのたびに`node tools/build.js --check`と構文チェックを実行する。コミットに**赤い×**が付いたら、「断片と結合HTMLの片方だけ上げた」か「構文エラー」。上げ直す前に原因を直す（片方ずつ上げた場合は、2つ目を上げれば緑になる）。回帰テストは入っていない（値を人が判定する形式のため）。
 
 ## 4. 相互作用に注意が必要な箇所
 
