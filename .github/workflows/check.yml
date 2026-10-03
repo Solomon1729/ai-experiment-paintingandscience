@@ -1,1 +1,28 @@
+# pushとPRのたびに、結合HTMLが src/ の断片と一致するか、JSの構文が通るかを自動で確かめる。
+# 赤い×が付いたら、断片と結合HTMLの片方だけ上げた／構文エラー、のどちらか（台帳Z-56）。
+# 回帰テスト（headless_regression.py）は値を人が判定する形式なので、ここには入れていない。
+name: check
 
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 結合HTMLが src/ の断片と一致するか
+        run: node tools/build.js --check
+
+      - name: JSの構文チェック
+        run: |
+          node -e "const fs=require('fs');const s=fs.readFileSync(process.argv[1],'utf8');fs.writeFileSync('/tmp/_am.js',[...s.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n'))" action-maker-v19-layer-tree.html
+          node --check /tmp/_am.js
+          echo SYNTAX_OK
