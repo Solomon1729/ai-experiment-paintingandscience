@@ -2,7 +2,7 @@
 
 別のAI（Claude / ChatGPT / Codex）が途中から安全に作業できるようにするための引き継ぎ資料。「なぜ今の設計になっているか」を残すことが目的。未確認のことは推測で埋めず「未確認」と書く。運用ルールは`AGENTS.md`、計画・未確定仕様・依頼台帳は`roadmap.md`。
 
-最終更新：v19時点（約1,430行、125,711 bytes。色調整・質感を含む。v18〜v19は構文チェックのみで実機未検証）＋編集コア（色調整・質感）の設計を追記（2026-10-02）＋正本ファイル名の確定・方針会議の反映（2026-10-03、方針は`POLICY.md`）
+最終更新：v19時点（色調整・質感を含む。v18〜v19は構文チェックのみで実機未検証）＋編集コア（色調整・質感）の設計を追記（2026-10-02）＋正本ファイル名の確定・方針会議・HTML分割の反映（2026-10-03、方針は`POLICY.md`）
 
 ## 1. 目的と構成
 
@@ -14,7 +14,9 @@
 
 ## 2. ファイル
 
-- `action-maker-v19-layer-tree.html`（旧`index.html`に相当。2026-10-03ユーザー決定。作業中は`action-maker-vNN.html`）：本体。HTML＋CSS＋JSがインライン。GitHubの`main`の現物が正本。約1,430行・125,711 bytesで、`<style>`1つ・`<script>`1つ（135関数、import/exportなし＝全部同じグローバル領域）。分割して開発する予定（roadmap I）。
+- `src/`：開発の正本。`src/manifest.json`の順にCSS・HTML本体・JS断片を並べる。各断片の担当範囲は`MODULES.md`。
+- `tools/build.js`：`src/manifest.json`の順に断片を連結するNodeスクリプト。`node tools/build.js`で結合し、`--check`で生成物とのバイト一致を検査する。
+- `action-maker-v19-layer-tree.html`（旧`index.html`に相当。2026-10-03ユーザー決定）：配布用の結合生成物。HTML＋CSS＋JSはインラインのまま、GitHub `main`で`src/`と共に管理する。手編集せず、`tools/build.js`で更新する。
 - `pkg/`：PWA配布用一式。
 - `AGENTS.md`：運用ルールと落とし穴。`PROJECT_CONTEXT.md`（本書）：構造と経緯。`roadmap.md`：計画・未確定仕様・依頼と提案の台帳。
 
