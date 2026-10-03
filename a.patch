@@ -1,0 +1,2018 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index a90777fdd7a7d4bc07e5219a522ef52a0d460d12..c47f6e4347833dc301a14b66b5fe06ef787f7ff3 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,44 +1,44 @@
+ # AGENTS.md
+ 
+ このリポジトリで作業するAIエージェント（Claude / ChatGPT / Codex 等）向けの、常設の開発ルールです。コードだけからは読み取れない設計判断・既知の落とし穴・運用ルールをまとめています。構造と経緯は `PROJECT_CONTEXT.md`、計画・未確定仕様・**依頼と提案の台帳**は `roadmap.md` を参照してください。
+ 
+-最終更新：v19時点（レイヤー機能B-0〜B-5実装済み、レイヤー/オブジェクト一覧はポップオーバーのツリー形式）＋編集コア設計の反映（2026-10-02、文書のみ）＋方針会議の決定の反映（2026-10-03、文書のみ。正本ファイル名・Gemini・回帰テスト・文書更新方法。詳細は`POLICY.md`）
++最終更新：v19時点（レイヤー機能B-0〜B-5実装済み、レイヤー/オブジェクト一覧はポップオーバーのツリー形式）＋編集コア設計の反映（2026-10-02、文書のみ）＋方針会議の決定とHTML分割の反映（2026-10-03。詳細は`POLICY.md`・`roadmap.md` I）
+ 
+ ## 0. 読む順番（トークン節約）
+ 
+ | やる作業 | 読むもの |
+ |---|---|
+-| どの作業でも | この`AGENTS.md`＋**正本HTML（現在は`action-maker-v19-layer-tree.html`。旧`index.html`に相当。2026-10-03ユーザー決定）**＋`roadmap.md`の「台帳」（§Z）だけ |
++| どの作業でも | この`AGENTS.md`＋**`src/manifest.json`と該当する`src/`断片**＋結合HTML `action-maker-v19-layer-tree.html`＋`roadmap.md`の「台帳」（§Z）だけ。対応表は`MODULES.md` |
+ | 構造・データ・過去のバグ経緯が必要 | `PROJECT_CONTEXT.md`（該当章だけでよい） |
+ | 新機能に着手 | `roadmap.md`の該当節（A=ペン解像度／B=レイヤー／E=編集モード／C=物理拡張／F=インターフェース改革／G=編集コア／H=基盤設計／I=HTML分割／J=3D空間） |
+ | 方針の判断が要る時・大きな機能の着手前 | `POLICY.md`（開発方針書。目標・守る原則・五基盤・実装順・後回し・体制） |
+ 
+ ## 1. 運用ルール（ユーザー指定）
+ 
+ - **1チャット1メインタスク**。複数依頼が来たら、優先順を提案して1つに絞る。ただし**絞って外した依頼は、絞る前に必ず台帳に書く**（§1.5）。
+-- **作業を始める前に、正本を確認する**。「最新版」はGitHub `main` の現物、またはユーザーが添付した最新ファイル。**現在の正本ファイルは`action-maker-v19-layer-tree.html`**（旧`index.html`が改名されたもの。2026-10-03ユーザー決定。ユーザーが添付するのはこれと同一で、AIが出力したものをユーザーが毎回GitHubに上げている）。Libraryなどにある別名・別サイズのv19系ファイル（例：`(6)`版）は旧基準版で、混ぜない。ChatGPTが最新版以外を取り出して加工しかけた事件があった。GitHubの文書が読めない時は、何も触らずユーザーに伝える。作業するファイルが最新か不確かなら、ユーザーに確認する。
++- **作業を始める前に、正本を確認する**。「最新版」はGitHub `main` の現物、またはユーザーが添付した最新ファイル。**開発の正本は`src/manifest.json`で順序を定めた`src/`断片、配布の正本はその生成物`action-maker-v19-layer-tree.html`**（旧`index.html`に相当。2026-10-03ユーザー決定）。断片を編集後、必ず`node tools/build.js`で結合し、`node tools/build.js --check`で一致を確認する。結合HTMLは手で直さない。Libraryなどにある別名・別サイズのv19系ファイル（例：`(6)`版）は旧基準版で、混ぜない。GitHubの文書が読めない時は、何も触らずユーザーに伝える。作業するファイルが最新か不確かなら、ユーザーに確認する。
+ - **テストは構文チェックのみ**（下記コマンド）。Playwright等の動作テストは、ユーザーが求めた時だけ。**例外（台帳Z-41、2026-10-03承認）**：保存・Undo・ペン・編集コアに触れる変更では、ヘッドレス回帰テスト（§6）を実行する。実機確認の代替ではなく、実機に回す前の最低限の機械的ゲート。
+ - **報告は10行程度**（変更点／触った関数／未確認点／次の一手）＋**「今回やらなかったもの」**（§1.5）。実機で確認していない点は必ず「未確認」と書く。
+ - **文書・HTMLの更新は、AIが編集済みの完成ファイル（全文）を出力し、変更点を短く伝える**。ユーザーに文章を貼り込ませない（コピペの欠落・人為ミスで壊すため。2026-10-03ユーザー決定）。ユーザーがチェックしてGitHubに上げる。
+ - 作業環境（ファイル作成やコマンド実行）が失敗した時は、成功したふりをせず、失敗したことと未完了の項目を正直に報告する。
+ 
+ 構文チェック：
+ ```
+ node -e "const fs=require('fs');const s=fs.readFileSync(process.argv[1],'utf8');fs.writeFileSync('/tmp/_am.js',[...s.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n'))" action-maker-v19-layer-tree.html && node --check /tmp/_am.js && echo SYNTAX_OK
+ ```
+ （末尾のファイル名は、検査するHTMLに置き換える。2026-10-03に現行の正本で`SYNTAX_OK`を確認した。）
+ 
+ ## 1.5 依頼・提案の台帳ルール（「言ったのに記録も改善もされていない」を防ぐ）
+ 
+ 背景：1チャット1タスクにすると、提案が保留のまま有耶無耶になり、ユーザーが「言った」ことが、どこにも記されず実装もされない事が起き始めた（実例：バグ報告が返答で無視され、後から再指摘された）。
+ 
+ 規則：
+ 1. ユーザーの**依頼・バグ報告・提案・懸念・「後でやる」は、実装するかどうかに関係なく、受けたその場で `roadmap.md` §Z の台帳に1行書く**。書く先が無い時は、その行を返答に貼り、ユーザーに文書へ入れてもらう。
+ 2. 台帳の各行には、**ID・内容・状態・保留の理由と再開条件・出所**を書く。状態は「未着手／実装済(要実機)／確認済／保留／却下／要すり合わせ」。
+ 3. **提案を保留にする時は「なぜ」と「何が揃えば再開するか」を書く**。理由の無い保留は禁止。
+ 4. **毎回の返答の最後に「今回やらなかったもの」を列挙する**（無ければ「なし」）。台帳のIDを添える。
+ 5. チャットの最初に台帳を読み、状態が「未着手」「保留」「要すり合わせ」のものを確認する。優先順を提案する時は、台帳の項目を落とさない。
+ 6. ユーザーが実機で確認して「直った」と言うまでは「実装済(要実機)」のままにする。「確認済」にできるのはユーザーだけ。
+ 7. 別のAIに渡した項目は、担当AIと渡した日付を台帳に書く。
+ 
+ ## 2. 役割分担
+@@ -56,54 +56,54 @@ node -e "const fs=require('fs');const s=fs.readFileSync(process.argv[1],'utf8');
+ - 既存機能を最優先。無関係なリファクタリングはしない。
+ - 変更前に、関連する変数・関数の依存を`grep`で確認する。本アプリは1ファイルにUI/描画/状態が同居している。
+ - 仕様が不明な場合は勝手に新仕様を作らない。`roadmap.md`で「未確認」と書かれた点に当たったら、実装を止めて質問・提案を先に出す。
+ - バグ修正は「特定条件を一律ブロックする対症療法」を避ける。過去にこれで2件の大きなregression（2本指ズーム停止、ズーム強制縮小）を出した。原因のロジックそのものを直す。
+ - **Canvas上のボタンは、拡大表示で作業するため、全てCanvas上に何らかの形で残す**（ユーザー確定）。メニューへの格納は可だが、Canvas外へ追い出さない。整理案は`roadmap.md`のF-1（未実装）。
+ - **UIは急かさない**（ユーザー指定）：ホバーで色が変わる等の演出をしない。押した時だけ出るポップオーバーを基本とし、常時表示のボタンはCanvasを妨げない最小限にする。
+ 
+ ## 3.5 機能はモードに属さない（ユーザーの強い希望）
+ 
+ - 画像加工（ペン・消しゴム・パーツ・切り抜き・反転・色調など）は、ツールとして**1回だけ実装**し、アニメーションモードと編集モードの**両方に入口を置く**。「静止画専用」「動画専用」の機能を作らない。
+ - 両モードの違いは、対象と表示（編集は1体・静止・等倍）／完了とキャンセル／誤操作の遮断、だけ。詳細は`roadmap.md`のE。
+ - 物理はアニメーションモードの中に置く（モードを増やさない）。
+ - **ロック中・非表示のオブジェクトの編集可否は、必ず`editable(l)`／`blocked(l)`（v18で本実装）を通す。分岐を各所に散らさない。** 新しい編集ツールを足したら、pointerdownの入口と、ボタンの`onclick`（ファイル末尾の`['pcut','pcopy',...]`ラッパ）に加える。
+ - 動きタブ・物理タブの設定はロック中でも許可（ユーザー確定）。配置のドラッグ移動もロック中に許可。
+ 
+ ## 3.6 編集コア（色調整・質感・合成の土台）の規約（2026-10-02、詳細は`roadmap.md`のG）
+ 
+ - 設計は`roadmap.md`のGに従う。保存形式・処理パイプラインに関わる変更は**設計変更として扱い、実装前にユーザーと相談する**（P1は単独のメインタスク）。
+ - **拡張はレジストリへの項目追加で行う**（効果・ドライバ・対象・曲線・プリセットを「1項目＝1オブジェクト」の表に定義）。パイプライン本体・UI・保存形式に手を入れない。採否未定の項目は`exp:true`で通常UIから隠す。
+ - 保存データは**文字列IDとパラメータ**で持つ（インデックス禁止）。**未知のIDは捨てずに保持**する。版番号キー`v`と移行関数で更新し、新キーの無い旧データを必ず読める。
+ - 調整値の定数（基準半径・初期値・重み）は1か所（`EDIT_CFG`）に集約する。連動のドライバは、その調整を適用する前の画像から測る。
+ - 調整用のCanvasフィールド（`adjm`・`lfm`など）は、`SKIP`・Undoの`frz`・保存の`u2`の**3か所をセット**で扱う。調整値（`adj`・`lf`・`adjRng`・`lfRng`）は通常キーでUndo・保存に乗る。
+ - ペン・ズーム・2本指のポインター処理（`pointerdown/move/up/cancel`）は、調整機能の都合で触らない。ChatGPT作成の(12)版でペン線の表示不具合が出たが、直接原因は未確認。
+ - 「ぎり動く」動作基準版を保持し、それより先は基準版からの差分で進める。基準版との差分を報告する。(12)版・(3)版は不採用（`PROJECT_CONTEXT.md` §6）。
+ 
+-## 3.7 HTML分割（承認済み・着手前。台帳Z-51、仕様はroadmap I）
++## 3.7 HTML分割（完了：2026-10-03。台帳Z-51、仕様はroadmap I）
+ 
+-- 方針：**開発は分割、配布は結合した1ファイル**。1回の読み書き量を減らし、スパゲティ化と「1回の改修が終わらない」を防ぐ。Codexが、**挙動を変えずに機械的に**行う（コードの修正・関数の移動・改名・整形・ES module化はしない）。
+-- 分割が完了するまで、このルールは「予告」であり、現行どおり正本HTML1枚を編集する。**分割作業中は本体HTMLの変更（バグ修正を含む）を止める**。
+-- 分割完了後に有効になる規則：①結合したHTMLは**生成物**で、手で直さない。②AIは結合まで実行し、構文チェックと回帰テストを通してから、**ソース断片と結合HTMLの両方**を渡す。③ユーザーは両方をGitHubに上げる。④どの部品がどの関数・グローバル変数を持つかの対応表（`MODULES.md`）を更新する。完了時に、§0・§1・§4の「読むもの」「正本」の記述を更新する。
++- 方針：**開発は分割、配布は結合した1ファイル**。`src/manifest.json`が結合順を定め、`tools/build.js`が元の順に連結するため、`const`の評価順（TDZ）を変えない。対応表は`MODULES.md`。
++- 開発時は`src/`の該当断片だけを編集し、`node tools/build.js`で`action-maker-v19-layer-tree.html`を生成する。結合HTMLは**生成物**であり、手で直さない。
++- 各変更で、結合→`node tools/build.js --check`→構文チェック→`python3 headless_regression.py`を実行する。AIはソース断片と結合HTMLの**両方**を渡し、ユーザーは両方をGitHubに上げる。
+ 
+ ## 4. 相互作用に注意が必要な箇所
+ 
+ - **ズーム／パン（`Z.s, Z.x, Z.y`）、`frame()`、2本指判定**：`frame()`はズーム値を変えてはいけない（パンのみ）。2本指判定は「最初の指から300ms以内か」で本物のピンチと誤タッチを区別する。ズーム系操作（ピンチ・ホイール・`zoomBy`）の後に`frame(sel)`を呼ぶ変更が入っている（消さない）。**v18：キャンバスのpointerdown中は`noFrame=true`にして`frame()`を無効化する**（拡大中に大きな画像へ触れた瞬間、選択→`frame()`で画面が勝手にパンしていたため）。`frame()`が呼ばれてよいのは、一覧・チップ等からの明示的な選択と、ズーム後だけ。2本指が成立した時は、直前の1本指ドラッグでずれた位置を`tgtBak`から戻す。ビューワー固定`vLock`がONの間は、ズーム・パン・`frame()`・リセットを全て止める。
+ - **物理（`physStep`）と動き（`ch`チャンネル）**：物理は`fx,fy`を直接書き換え、動きチャンネルは描画時に加算オフセットとして乗る。この関係を崩すと入れ子の動き（落下しつつ揺れる）が壊れる。物理に回転を足す場合も、`l.rot`を書き換えず別フィールド（例：`phys.ang`）を描画時に加算すること。非表示レイヤーを物理から除外するかは`physHideEx`（ユーザーが選ぶ）。
+ - **ブラシ変数**：`brushMask`/`brushBlur`/`brushParts`は別変数。統合しない。
+ - **歪みの解像度（`actorWR`）とマスク/ぼかしの解像度（`MR=512`）とペンの解像度（`baseRes`）**：3系統は別物。**`perfTick`は歪みの「アニメーション由来の再計算時間」だけで判定する（v18）**。歪みの編集操作（スライダー、`wd/dirty`、初回計算）の時間は含めない。含めると、動き0の静的な歪みを編集しただけで「動きのある歪みが多く、画質を下げました」が出る（実例）。アニメーションが無い（`wAct=false`）フレームでは判定しない。ペンは端末で分けず共通定数（`PENCAP`）、歪みは負荷に応じて自動で落としてよい。ただし**歪みの焼き込み（`wbake`）は静止画処理なので、`lvl`・`LVCAP`に縛られず実解像度で行う**（`actorWR`本体は変えない）。
+ - **ペンの`base`/`pen`/`cv`**：`snap()`/`restore()`（Undo/Redo）は`base`と`pen`を版番号（`bsv`/`pnv`）つきで保存・復元する（`base`がある間は`cv`を保存せず、復元時に`recompose`で作り直す）。`base`/`pen`を書き換える箇所（`penAt`・`wbake`・`bbake`・`takePart`の切り取り）では、`bumpBP(l,b,p)`で版番号を進めること。保存・読込（`ser()`/`loadProj()`）は`base`/`pen`を持たず、合成結果`img`に焼き込まれる。キャンバス解像度を変える時は`snap`/`restore`/`ser`/`loadProj`を必ず一緒に確認する。
+ - **レイヤー（v18〜）**：`LAYERS`は配列の後ろほど手前。`actor.layerId`が無い/不明なら先頭レイヤー扱い（`LY()`のフォールバック）で、新規アクターは次フレームの`paintFrame`で`curLid`に入る。非表示アクターは`draw()`の`self`内で**描画だけ省略**する（`l.M`・`wx,wy`は更新し続ける。マスク対象が非表示でも効かせるため）。「ついていく」子は自分のレイヤーが表示中で、かつ親も表示中の時だけ見える。描画順は「レイヤー順（`layIdx`）→レイヤー内は`AC`順」で、`roots`だけを並べ替える（子は親と一緒に描く）。マスク対象がレイヤー（`toType:'layer'`）の時、`l.to`は**アクターidではなくレイヤーid**なので、`byId(l.to)`を直接呼ばない（idが衝突する）。`att`は`toType!=='layer'`の時だけ有効。
+ - **ポップオーバー（レイヤー／オブジェクト一覧）**：`#lypop`は`layUi()`が開いている時だけ描画する（サムネ生成が重いため、閉じている間は何もしない）。開閉の状態・折りたたみ(`foldSet`)・位置はUI一時状態で、Undoにも保存にも入れない。`chips()`は`#ch1`に開くボタン1つを作るだけになった（旧オブジェクトチップは廃止）。
+ 
+ ## 5. データ構造を変更する時の注意
+ 
+ - アクターに新しいCanvasベースのフィールドを足したら、`SKIP`セットに必ず追加する（忘れるとJSON.stringifyが失敗する）。`_`始まりのキーも保存対象外。
+ - `att`なアクターの`fx,fy`は権威ある値ではない。実描画位置が必要なら`wx,wy`を使う。
+ - 波形関数`WV`は休止位置中心の-1〜+1に正規化する規約。新波形もこれに従う。
+ - 新しいグローバル配列（`LAYERS`、物理の`JOINTS`など）を足す時は、`snap`/`restore`（Undo）と`ser`/`loadProj`（保存）の**両方**に入れ、旧データ読込時の初期化（マイグレーション）を必ず書く。`LAYERS`は済（`ser`の`LAY`キー、`snap`の`L`/`cl`）。`physHideEx`は保存するがUndo対象外。
+ - UIの一時状態（パネルの開閉・位置・透明度・サイズ・折りたたみ）は、作品データ・Undoに入れない。
+ 
+ ## 6. テストについて
+ 
+ 自動テストの常設スイートは無い（回帰テストは下記）。修正・追加をしたら、構文チェックに加えて「配置・ドラッグ・保存読込・Undoが壊れていないか」を**コードの読み合わせで**確認し、確認できなかった点を報告に「未確認」と書く。v18〜v19のレイヤー実装は、構文チェックのみで実機未検証（台帳参照）。
+ 
+ **回帰テスト（承認済み。台帳Z-41、2026-10-03）**：`tests/headless_regression.py`（Playwright＋Chromium。リポジトリ上の配置は未確認）は、ペン線と調整の干渉・質感マスク・全体⇄範囲指定・Undo・保存読込を自動で確認する。**保存・Undo・ペン・編集コアに触れる変更では、必ず実行する**。それ以外は従来どおり、ユーザーが求めた時だけ。実行できない環境では、できなかったことを報告に書く（成功したふりをしない：§1）。これは実機確認の代替ではなく、実機に回す前の最低限の機械的ゲートである。起動時の初期化で参照する要素ID・変数が実在するかは、読み合わせでも必ず確認する（(12)(3)版は起動時の初期化エラーで途中までしか初期化されなかった）。色調整・質感は、ヘッドレス確認のみで実機未検証（GitHub mainには反映済み）。
+diff --git a/MODULES.md b/MODULES.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..6a3e453ef0323256ed2c7d10735d04b19394f4fb
+--- /dev/null
++++ b/MODULES.md
+@@ -0,0 +1,41 @@
++# MODULES.md — HTML分割の対応表
++
++2026-10-03に `action-maker-v19-layer-tree.html` を、挙動を変えずに分割した。`src/manifest.json` の順序が評価順であり、`tools/build.js` が同順で結合する。生成物の `action-maker-v19-layer-tree.html` は手編集しない。
++
++| 断片 | 内容（主な関数・グローバル） |
++|---|---|
++| `src/document-prefix.html` | `<!DOCTYPE html>` から `<style>` 開始タグまで |
++| `src/styles.css` | アプリ全体のCSS |
++| `src/document-before-script.html` | CSS終了タグから `<script>` 開始タグまでのHTML本体・UI要素 |
++| `src/js/00-bootstrap.js` | DOM取得、Canvas、共通定数、`emo` |
++| `src/js/10-motion.js` | 動き定義 `K`/`WN`/`WV`、アクター初期状態、`add` |
++| `src/js/20-adjustments.js` | 色調整・質感 `ensureAdj`/`ensureLF`、`adjSource`、`adjUi`、`lfUi` |
++| `src/js/30-actors-and-drawing.js` | 画像設定、特殊アクター、配置・描画 `fit`/`img`/`draw` |
++| `src/js/40-masks.js` | マスク描画 `maskedImg`/`stroke`/`paintFrame` |
++| `src/js/50-physics.js` | 物理状態・計算 `ensurePhys`/`physStep`/`physUi`、`loop` |
++| `src/js/60-input-state.js` | ポインター座標・入力状態の共通ヘルパー |
++| `src/js/70-layers.js` | レイヤー `LAYERS`、可視・ロック判定、ツリーUI `layUi` |
++| `src/js/80-pointer-events.js` | ヒット判定、ドラッグ、ズーム、Canvasポインターイベント |
++| `src/js/90-ui.js` | 動きUI、選択 `setSel`、チップ、フレーム、配置UIのイベント |
++| `src/js/100-background-and-export.js` | 背景 `BG`、録画・通常書き出し |
++| `src/js/110-pen-and-text.js` | ペン `base`/`pen`、文字、調整・質感UIイベント |
++| `src/js/120-warp.js` | 歪みの処理・焼き込み、歪み用定数 |
++| `src/js/130-gif.js` | GIFエンコーダ、GIF/テキスト/ぼかしイベント |
++| `src/js/140-controls.js` | スライダーの±ボタンと数値入力 |
++| `src/js/150-blur.js` | 範囲ぼかし・範囲選択、マスク表示、ピン描画 |
++| `src/js/160-still-export.js` | 高解像度静止画書き出し `snapImg` |
++| `src/js/170-undo.js` | Undo/Redo `snap`/`restore`/`pushUndo`、`SKIP` |
++| `src/js/180-project-io.js` | 保存・読込 `ser`/`loadProj`/`saveProj`、自動保存 |
++| `src/js/190-hints-and-demos.js` | ヒント、サンプル生成 `demoA`/`demoB` |
++| `src/js/200-warp-ui.js` | 歪み選択・歪みUI、エフェクト全消去 |
++| `src/js/210-performance.js` | 処理品質の自動調整 `perfTick`/`setLvl` |
++| `src/js/220-parts.js` | パーツのコピー・切り取り・貼り付け、トレイ |
++| `src/js/230-color-picker.js` | スポイト |
++| `src/js/240-tooling-and-init.js` | ツール・タブ、フルスクリーン、初期化、ロック用ラッパー |
++| `src/document-suffix.html` | `</script>` からHTML末尾まで |
++
++## 開発手順
++
++1. 該当する `src/` 断片だけを編集する。
++2. `node tools/build.js` を実行して結合HTMLを更新する。
++3. `node tools/build.js --check`、構文チェック、`python3 headless_regression.py` を順に実行する。
+diff --git a/PROJECT_CONTEXT.md b/PROJECT_CONTEXT.md
+index 11780c637de1febd54e468bc8909e9a3a921ff78..136ea94b142a171117113d7736ddab0c2cf2e9ea 100644
+--- a/PROJECT_CONTEXT.md
++++ b/PROJECT_CONTEXT.md
+@@ -1,42 +1,44 @@
+ # PROJECT_CONTEXT.md — アクションメーカー
+ 
+ 別のAI（Claude / ChatGPT / Codex）が途中から安全に作業できるようにするための引き継ぎ資料。「なぜ今の設計になっているか」を残すことが目的。未確認のことは推測で埋めず「未確認」と書く。運用ルールは`AGENTS.md`、計画・未確定仕様・依頼台帳は`roadmap.md`。
+ 
+-最終更新：v19時点（約1,430行、125,711 bytes。色調整・質感を含む。v18〜v19は構文チェックのみで実機未検証）＋編集コア（色調整・質感）の設計を追記（2026-10-02）＋正本ファイル名の確定・方針会議の反映（2026-10-03、方針は`POLICY.md`）
++最終更新：v19時点（色調整・質感を含む。v18〜v19は構文チェックのみで実機未検証）＋編集コア（色調整・質感）の設計を追記（2026-10-02）＋正本ファイル名の確定・方針会議・HTML分割の反映（2026-10-03、方針は`POLICY.md`）
+ 
+ ## 1. 目的と構成
+ 
+ **目的**：キャラ画像やモノ画像を配置し、反復運動・回転・歪み・マスクなどの「型」を組み合わせて、簡単で表現の幅が広いアニメーションを作るツール。「ぷるぷるメーカー」的な手軽さを起点に、画像編集・物理演算・（将来）液体表現まで同じ環境で扱う。PhotopeaやibisPaintを超えるユーザビリティが目標。
+ 
+ **実行環境**：単一の自己完結HTML（外部通信なし、画像もローカル処理）。オフライン版は外部フォントのlinkタグのみ除去。PWA配布用一式（manifest/sw/アイコン）もある。
+ 
+ **育ち方**：単純な「キャラ＋モノ」から、反復運動 → キャラ/モノ区別の撤廃（全部「アクター」） → 歪み → マスク → ぼかし → ペン・パーツ切り取り → 物理 → レイヤー、の順。軸は一貫して「2D画像素材を動的なオブジェクトとして扱う」。
+ 
+ ## 2. ファイル
+ 
+-- `action-maker-v19-layer-tree.html`（旧`index.html`に相当。2026-10-03ユーザー決定。作業中は`action-maker-vNN.html`）：本体。HTML＋CSS＋JSがインライン。GitHubの`main`の現物が正本。約1,430行・125,711 bytesで、`<style>`1つ・`<script>`1つ（135関数、import/exportなし＝全部同じグローバル領域）。分割して開発する予定（roadmap I）。
++- `src/`：開発の正本。`src/manifest.json`の順にCSS・HTML本体・JS断片を並べる。各断片の担当範囲は`MODULES.md`。
++- `tools/build.js`：`src/manifest.json`の順に断片を連結するNodeスクリプト。`node tools/build.js`で結合し、`--check`で生成物とのバイト一致を検査する。
++- `action-maker-v19-layer-tree.html`（旧`index.html`に相当。2026-10-03ユーザー決定）：配布用の結合生成物。HTML＋CSS＋JSはインラインのまま、GitHub `main`で`src/`と共に管理する。手編集せず、`tools/build.js`で更新する。
+ - `pkg/`：PWA配布用一式。
+ - `AGENTS.md`：運用ルールと落とし穴。`PROJECT_CONTEXT.md`（本書）：構造と経緯。`roadmap.md`：計画・未確定仕様・依頼と提案の台帳。
+ 
+ ## 3. 重要なデータ構造・状態管理
+ 
+ ### アクター（`AC`配列の要素）
+ キャラ／モノ／文字／描画／パーツ片は、すべて同じ形のアクター。種類分け（旧`kind`）は撤廃済み。`AC`の並び＝同じレイヤー内の描画順（後ろほど手前）。
+ 
+ ```js
+ {
+   id, name,
+   sp,                 // 'p'=パーツ切り取り片, 't'=文字, 'd'=白紙描画。無ければ通常
+   img,                // 現在の表示画像(Image or canvas)
+   fx, fy,             // 位置(0〜1、ステージ比)。attがonの間は不正確(下記M)
+   size, pv, face, rot,// 大きさ倍率／のび縮みの支点／左右反転(1|-1)／静止姿勢の角度(度)
+   rr,                 // 回転半径(0=その場、>0で軌道)
+   ch,                 // 動きチャンネル {m,r,s}。各{a,hz,w,d,e,ph}
+   to, att, maskTo,    // 対象のid／対象についていく／対象のマスクで隠す
+   toType,             // v18〜: 'actor'(既定・未設定も同義)|'layer'。'layer'の時 to はレイヤーid
+   layerId,            // v18〜: 所属レイヤーid。未設定/不明は先頭レイヤー扱い
+   ox, oy, front,      // ついていく時の相対位置(対象ローカル座標)／対象の手前奥
+   keep, eat, bite,    // マスクで隠れた部分の透明度／消えた部分を戻さない／食べかけ保持canvas
+   mask, hasMask,      // 自分のマスク領域(MR×MR, MR=512)
+   pins, syncTo,       // 歪みピン配列／歪み同期相手のid(配列を共有)
+   blur, bm, hasBm, bmOn,  // ぼかし(bmは範囲マスク MR×MR)
+diff --git a/roadmap.md b/roadmap.md
+index 3b96012bbf5a87df9b9ff0ba1a11f27fc4d1b63d..845e4203a554598a515a8bb4969313c0f7b8662b 100644
+--- a/roadmap.md
++++ b/roadmap.md
+@@ -1,40 +1,40 @@
+ # roadmap.md — アクションメーカー 計画と未確定仕様
+ 
+ 進捗確認と「次に何をやるか」の記録。実装したら「済」にする。旧`LAYERS_SPEC.md`は本書の「B」に統合した。**依頼・提案・バグ報告の台帳は本書の末尾「Z」**（AGENTS.md §1.5のルールで運用する）。
+ 
+-最終更新：v19時点（Geminiとのインターフェース対話を反映済み）＋**G. 編集コア**の設計を追加（2026-10-02）＋**H（基盤設計）・I（HTML分割）・J（3D空間）**と台帳Z-42〜Z-55を追加、§0に会議決定の幹を追加（2026-10-03、方針会議の決定。方針は`POLICY.md`）
++最終更新：v19時点（Geminiとのインターフェース対話を反映済み）＋**G. 編集コア**の設計を追加（2026-10-02）＋**H（基盤設計）・I（HTML分割）・J（3D空間）**と台帳Z-42〜Z-55を追加、§0に会議決定の幹を追加（2026-10-03、方針会議の決定）＋IのHTML分割を完了（2026-10-03。方針は`POLICY.md`）
+ 
+ ## 0. 着手順（提案）と担当
+ 
+ ### 0-1. 会議決定の幹（2026-10-03。方針は`POLICY.md`。**0-2と競合する場合はこちらを優先**）
+ 
+ | 段 | 内容 | 担当（案） | 状態 |
+ |---|---|---|---|
+ | 0 | 正本の確定：`action-maker-v19-layer-tree.html`（Z-47） | ユーザー | 確認済 |
+ | 並行 | 実機確認。結果は台帳に1行ずつ | ユーザー | 常時 |
+-| 1 | **I. HTML分割**（開発は分割、配布は結合1ファイル。バイト一致で検証。Z-51） | Codex | 承認(2026-10-03)。依頼前。分割中は本体の変更を止める |
++| 1 | **I. HTML分割**（開発は分割、配布は結合1ファイル。バイト一致で検証。Z-51） | Codex | 実装済(要実機)(2026-10-03)。`src/`＋`tools/build.js`＋`MODULES.md`。結合・構文チェック済、回帰テストはPlaywright未導入で未実行 |
+ | 2 | **H. 五基盤の設計**（時間／実行状態／保存・素材／生成アクター／条件・イベント・動作の表現。Z-48） | Claude（ChatGPTがレビュー） | 承認。文書のみ。1と並行可 |
+ | 3 | **G. 編集コア P1**（Z-34） | Claude | 承認済み。1・2の後 |
+ | 4 | **C1**：固定ステップ＝時計、物理オブジェクト、生成アクター最小版、一括静止（Z-11） | Codex | 2の後 |
+ | 5 | 条件→動作の最小版＋再生専用HTML書き出し（Z-49） | Claude設計→Codex | Z-49は未承認 |
+ | 6 | ADV／シーン（Z-42） | — | 5の後 |
+ | 7 | 動画アクター・PDF取込・素材パック（Z-43〜Z-45） | — | 方針決定後 |
+ | 8 | 高度な物理（3D剛体・粒子法流体。Z-50） | — | 最後 |
+ | 横入り | PDF書き出し、SVG取込など独立した軽いI/O。**J. 3D空間**：Viewerは2の後ならC1と並行可、質点運動以降はC1の後（Z-52） | — | — |
+ 
+ ### 0-2. 既存の着手順（2026-10-02時点。0-1と競合する場合は0-1を優先）
+ 
+ | 順 | 内容 | 担当案 | 状態 |
+ |---|---|---|---|
+ | 0 | **v18〜v19の実機確認とバグ修正**（レイヤー、ポップオーバー、ビューワー固定ほか） | Claude | **最優先**。ユーザーの報告待ち（台帳Z-01〜Z-10） |
+ | 1 | **A. ペン解像度の拡張**（段階1） | ChatGPT | 仕様確定（`PENCAP`の値だけ確認）。`main`の現状を先に確認 |
+ | 2 | **B. レイヤー** | Claude（実装済） | B-0〜B-5とツリーUIは済。残りは「懸念・注意事項」と特殊レイヤー |
+ | 3 | **E. 編集モード最小版** | Codex（設計はClaude） | Bの実機確認後。仕様は本書のE |
+ | 4 | **C. 物理拡張**（C1→C2→C3） | Codex／案出しはChatGPT（Geminiは使わない：Z-53） | D1〜D5の回答待ち。**C1の前に「一括静止ボタン」の設計を入れる（Z-11）**。**さらにC1の前に五基盤の設計（H）を確定する（Z-48）** |
+ | 5 | **F. インターフェース改革** | Claudeが設計→実装は別途 | 設計案のみ（本書F）。Canvas上のボタン整理は今は実装しない |
+ | 6 | **G. 編集コア**（P1：輪郭を保つ2層分離・にじみ抑制・内部共通化・版番号） | Claude | 設計確定（本書G、台帳Z-32〜Z-41）。P1は別チャットで相談してから着手（I・Hの後。Z-51・Z-48）。他の大機能と同時に進めない |
+ 
+ 理由：BとEは同じpointerdown処理と`hit()`を触るので、**並行実装しない**。B-0で共通の関門`editable(l)`を先に入れたので、EはこのAPIを通すだけでよい。Cは新しい物理体をレイヤー/編集の対象にするため、B・Eの後の方が手戻りが少ない（Cの方が先が良い事情は今のところ無い）。Aは別領域（ペン周りだけ）なので並行してよい。Fは`#wrap`/`#tp`のレイアウトに触れるため、他の大機能と同時に進めない。Gは調整の描画パイプラインと保存形式に触れるため、B・E・Fとは並行しない（A・Cとは領域が別）。
+ 
+ ---
+ 
+@@ -432,51 +432,51 @@ GitHub mainへ反映済み（2026-10-03ユーザー確認。当初は別納品
+ - 現状（コード確認済み）：`loop(ts)`が`dt=min(raw/1000,.05)`で動きの位相`c.ph`を進める。`physStep(dt*physTimeScale)`も可変dt。作品上の絶対時刻が無い。動画は実時間録画（`MediaRecorder`、30fps指定）、GIFは最大10秒・幅360px。
+ - 決めること：①`sceneTime`（作品の絶対時間。再生・停止・シーク）②`simulationTime`＝固定ステップ数×dtから導く（独立した時計にしない。食い違い防止。[提案：設計時に確定]）③動きの位相（0〜1周期）との関係④固定ステップ幅⑤動画出力を実時間録画からフレーム単位へ⑥同じ作品が同じ結果になる再現性⑦旧作品の動きを変えない移行。
+ - 制約：動きの波形の対称規約（`WV`）を壊さない。C節のD3（固定ステップ化で旧作品の物理がわずかに変わることを許容するか）は未回答。
+ 
+ ### H-2. 実行状態（runtime state）
+ - 現状：`physStep`が`l.fx,l.fy`を直接書き換える。`snap/restore`はUndo用であり、実行状態のモデルではない。
+ - 決めること：①編集中の作品データと、再生中の一時状態（位置・変数・フラグ・現在シーン）の分離（ACの外に新設）②再生開始時の退避と停止時の復元（`snap/restore`の流用可否と、重い画像での負荷は未検証）③保存に入れるもの・入れないもの。
+ 
+ ### H-3. 保存・素材
+ - 現状：`ser()`は`{v:1,uid,sel,LAY,BG,AC}`で、各アクターが画像・マスクをdata URLで抱える。`v:1`は書くが、**`loadProj`は`v`を読まない**（grepで参照なしを確認、2026-10-03）＝版による移行は未実装。
+ - 決めること：①概念（Project→Assets→Actors→Scenes→Runtime）②素材表（assetId→画像）での重複排除・再利用③版番号`v`と移行関数（G-5-4、G-11 Q6と一体）④v1は必ず読める⑤未知IDの保持⑥複数作品タブ・素材パック・動画・PDFページ・3Dシーンの入れ場所。
+ - 制約：「今すぐv2に全面移行」はしない。概念を先に設計し、その後に移行する。
+ 
+ ### H-4. 生成アクター／レジストリ
+ - 現状：C節に`sp:'k'`（質点・球・板）の構想。小物メーカー（Z-45）、ゲームUI部品も同じ性質。
+ - 決めること：`generatorId＋version＋parameters`→画像／アクターの1つの仕組みへの統一。名前空間の例：`physics.circle`／`circuit.resistor`／`chemistry.beaker`／`game.button`。パックはデータ（JSON）。自作部品（プリミティブの組み合わせ）の保存。G-5のレジストリ方式（文字列ID・未知ID保持・`exp:true`）に合わせる。権利が微妙なものはイラスト化（ユーザー方針）。
+ 
+ ### H-5. 条件・イベント・動作の表現
+ - 現状：無い（「条件つきの出現・消滅（表形式：条件→動作）」「条件動作」の構想のみ）。
+ - 決めること：**データ表現のみ**。条件（時刻・接触・クリック・変数比較・速度閾値…）→動作（表示・移動・メッセージ・シーン遷移・変数設定・レシピ実行…）を、文字列ID＋パラメータで書く形。「レシピ」（編集の操作列・動きの型）との関係。実装は最小版（POLICY §4の段5）から。
+ 
+ ---
+ 
+ ## I. HTML分割（開発は分割、配布は結合した1ファイル）
+ 
+-**状態：承認（2026-10-03「トラブルが起きない限りはい」、台帳Z-51）。担当：Codex（依頼日は渡す時に台帳へ記入）。** 分割中は本体HTMLの変更（バグ修正を含む）を止める。
++**状態：実装済(要実機)（2026-10-03、台帳Z-51）。担当：Codex（依頼日：2026-10-03）。** `src/`断片・`tools/build.js`・`MODULES.md`を追加し、結合結果が分割前の正本とバイト一致することを確認した。
+ 
+ **目的**：1回の読み書き量を減らし、スパゲティ化と「1回の改修が終わらない」を防ぐ。現状（2026-10-03計測）：約1,430行・116,403文字・125,711 bytes、300字を超える行が24本（最長743字）、`<style>`1つ（8〜83行）・`<script>`1つ（249〜1426行・135関数）、`import/export`なし＝全部同じグローバル領域。
+ 
+ **方式**
+ - `src/`に、CSS・HTML本体・JSの断片（節コメントの境界で、関数の途中を切らずに分ける）を置く。結合スクリプト（Node、1ファイル）が**元の順に**連結して、`action-maker-v19-layer-tree.html`（結合HTML）を生成する。元の順を保てば`const`の評価順（TDZ）も変わらない。
+ - 切り口の候補（現行ファイルの行番号＝節コメントの位置）：258動き／475マスク／523物理／585入力・590レイヤー／730UI／826背景／839書き出し／863ペン／936歪み／1012GIF／1052±ボタン／1070ぼかし／1128静止画／1136Undo／1178保存／1215ヒント／1218サンプル／1244歪み一覧／1280処理の軽さ／1291パーツ／1352スポイト／1423ロック。節コメントの間隔は最大でも約220行。**色調整・質感（`ensureAdj`〜`adjAll`、286〜378行付近）は専用の節コメントが無く、258〜475の範囲にある**ので、関数名で切り出す。
+ - 検証：①**結合結果が、分割前の正本とバイト一致する**（挙動不変の証明）②構文チェック（AGENTS.md §1）③ヘッドレス回帰テスト（Z-41）④以後の変更ごとに、結合→構文チェック→回帰。
+ 
+ **やらないこと**：コードの修正（バグを見つけても直さず、台帳に書いて報告）／関数の移動・改名・整形（インデント変更を含む）／ES module化・名前空間の導入／機能の追加。
+ 
+ **運用ルール**（AGENTS.md §3.7）：結合HTMLは生成物で手で直さない。AIは結合まで実行し、構文チェックと回帰を通してから、ソース断片と結合HTMLの**両方**を渡す。ユーザーは両方をGitHubに上げる。どの部品がどの関数・グローバル変数を持つかの対応表`MODULES.md`を置く。
+ 
+ **リスクと対策**：二重管理で正本が食い違う（正本事故の再発）→結合HTMLは生成物とし、再結合してバイト一致を確認できるようにする。分割の境界が関数をまたぐ→関数単位で切る。自動結合（GitHub Actionsなど）はユーザーの運用負担を見て将来検討（未決）。
+ 
+ **Codexへの成果物**：`src/`一式、結合スクリプト、`MODULES.md`、検証ログ（バイト一致・構文チェック・回帰テストの結果）、10行程度の報告と「今回やらなかったもの」。
+ 
+ ---
+ 
+ ## J. 3D空間（別窓の独立した3D実験空間）
+ 
+ **状態：方針を承認（2026-10-03、台帳Z-52）。仕様は五基盤（H）の確定後に、別チャットで確定する。コードは未着手。** 理由：入試物理・物理オリンピックには3次元（空間運動、電場・磁場、ベクトル、光線）があるため。
+ 
+ **決定**
+ - **別窓・別パネルの独立した3D空間**にする。2DのACにも`LAYERS`にも混ぜない（2Dとは別の「ワールド」）。
+ - **右手系固定**（外積・ローレンツ力の符号を教科書と合わせるため）。**鉛直軸はz上が基本（x右・y奥・z上）で、柔軟性を残す**：「世界の上方向」を設定値として持ち（既定は+z）、カメラの初期姿勢と重力の既定方向がそれに従う。y上（x右・y上・z手前）など他の割当にも切り替えられる設計にする。重力は上方向の逆向きを既定とし、任意方向も可（2Dの`physGDir`と同様）。
+@@ -628,30 +628,30 @@ GitHub mainへ反映済み（2026-10-03ユーザー確認。当初は別納品
+ | Z-26 | 「配置」タブの並び順を、基本情報→変形→関係性に整理（Gemini案） | 保留 | 理由＝UI再編の一部で、今回はコードを変えない方針。再開条件＝ユーザーの指示、または配置タブを触る時 | Gemini案 |
+ | Z-27 | 「サンプル絵文字」「画像を選ぶ」を「＋追加」のポップアップに移す（Gemini案） | 保留 | 理由＝同上。ポップオーバーの「＋オブジェクト」に寄せる形が自然。再開条件＝ユーザーの指示 | Gemini案 |
+ | Z-28 | タブ構成の再編（役割順、歪み＋ぼかし、描く＋マスクの統合など） | 保留 | 理由＝既存タブ構成を大きく変える。再開条件＝v18〜v19の実機確認後にユーザーと相談 | Gemini案 |
+ | Z-29 | Canvas上のUIを未操作時に半透明にする（Gemini案） | 要すり合わせ | ホバー/タップで濃くする演出は「急かさない」方針と衝突。常時一定の半透明ならよいか、ユーザーに確認 | Gemini案 |
+ | Z-30 | 浮遊オブジェクトトレイ（サムネ横並び、Gemini案） | 却下(v19で代替) | レイヤー/オブジェクト一覧はポップオーバーのツリーに統合済み。常時見える表示が欲しくなったら再検討 | Gemini案 |
+ | Z-31 | メニューの親ボタンを最頻機能にして、長押し/スワイプでサブメニュー（Gemini案） | 保留 | Z-12と一緒に判断。タッチとマウスの両方で使えるかの確認が必要 | Gemini案 |
+ | Z-32 | 色調整・質感を別タブ化。質感5効果×6値（強さ・スケール・局所性・エッジ選択・階調バランス・ノイズ抑制）、専用マスク、2軸パッド、全体/範囲指定の切替 | 実装済(要実機) | 別納品HTML（(6)版土台）として納品し、のちにGitHub mainへ反映済み（2026-10-03ユーザー確認）。ヘッドレスChromiumでペン・スライダー・範囲切替・Undo・保存読込を確認済み。実機タッチ・大画像の速度・質感の見た目は未確認（Z-39） | ユーザー依頼 |
+ | Z-33 | 「全体」の後に「範囲を塗る」が効かない／ボタンの点灯で状態が分からない | 実装済(要実機) | 原因＝「全体」が白の全面塗りつぶしボタンで、白に白を塗っても変化しなかった。「全体⇄範囲指定」の切替モードに変更（塗った範囲は残り再利用可）。色/質感で別々 | ユーザー報告 |
+ | Z-34 | 輪郭を保つ2層分離、にじみ抑制の軸、局所コントラストの内部共通化、版番号`v`・`EDIT_CFG`・効果のレジストリ化（G-9のP1） | 未着手 | ユーザー承認済み。I（HTML分割・Z-51）とH（五基盤の設計・Z-48）の後の大規模作業。別チャットで相談してから着手 | ユーザー承認 |
+ | Z-35 | 連動（モジュレーション）：「AにBを連動」を選べる形。アンビエンスを「明暗差→彩度」のプリセットに | 要すり合わせ | 採用候補。再開条件＝P1の後に試作し、実画像で既存機能では出せない違い（明るさ→色温度など）が出るかで採否（G-6）。ボツでも`exp:true`に格下げして残す | ユーザー提案 |
+ | Z-36 | 連動を含め、後から変更・拡張できる設計（レジストリ・文字列ID・版番号・未知IDの保持） | 未着手 | `[決定]`。P1で骨組みを入れる（G-5） | ユーザー依頼 |
+ | Z-37 | 複数対象への一括適用／調整値スポイト／複数調整セット | 保留 | 理由＝仕様未決（G-11 Q3）。再開条件＝P6の前に別途設計。Z-14（調整レイヤー）と併せて検討 | 旧roadmap・Claude |
+ | Z-38 | ChatGPT作成の局所調整実装（(12)版・(3)版）の不採用 | 記録 | 起動時の初期化エラーで途中までしか初期化されなかった（(12)＝存在しない要素に`onclick`、(3)＝未定義変数）。PROJECT_CONTEXT §6。(6)版を動作基準に | Claude確認 |
+ | Z-39 | 実機確認：ペン描画、2本指ズーム、タッチ操作、大画像の速度、質感の見た目（実画像で明瞭度・ストラクチャ・テクスチャ・シャープを比較） | 実装済(要実機) | ユーザーが確認（Z-32の確認項目）。質感の違いが弱ければG-4の再設計（P1）へ | Claude |
+ | Z-40 | 土台構想の使い道：壁の模様を布へ移す／タペストリー風／布を取り除いた風／液体・合成物の境界なじませ（パッチ・類推機能の人力ベース） | 保留 | G-1・G-8に記録。再開条件＝P3（借用・統計合わせ）以降 | ユーザー提案 |
+ | Z-41 | AGENTS.md §6への回帰テスト例外（保存・Undo・ペンに触れる変更時に実行）と`tests/headless_regression.py`の採用 | 実装済 | ユーザー承認(2026-10-03)。AGENTS §1・§6に反映済み（ユーザーのチェックとGitHub反映待ち）。規則＝保存・Undo・ペン・編集コアに触れる変更ではヘッドレス回帰テストを必ず実行、それ以外は従来どおり依頼時。`tests/headless_regression.py`のリポジトリ上の配置は未確認 | Claude提案・ユーザー承認 |
+ | Z-42 | ゲームメーカー化（最終目標）。ノベル／ADV／簡単なボタン格闘／恋愛系のサンプル、メッセージの受け渡し、簡単な条件制御 | 保留 | 理由＝時間・実行状態・条件/イベントの表現（H）が前提。再開条件＝H確定後、条件→動作の最小版（POLICY §4の段5）から。格闘・アクション級は最後 | ユーザー |
+ | Z-43 | PDF対応（取り込み・加工・書き出し）と扱えるファイル形式の拡大 | 要すり合わせ | 書き出し（画像→PDF）は横入り可。取り込みはライブラリ同梱方針（単一HTML・外部通信なしとの折り合い）の決定待ち。本文編集は目標から外す（Z-50） | ユーザー |
+ | Z-44 | 動画への質感・色調整・お絵かきと出力 | 保留 | 理由＝毎フレーム処理の重さが未検証、時間モデル（H-1）待ち。再開条件＝動画アクターの最小版を試作して速度を測る | ユーザー |
+ | Z-45 | 小物（物理・回路・化学器具・生物・地学・歴史・地理）のパッケージとオブジェクトメーカー、自作部品の保存。権利が微妙なものはイラスト化 | 保留 | 理由＝生成アクターの設計（H-4）が前提。再開条件＝H-4確定後、C1の生成アクター最小版と同時に | ユーザー |
+ | Z-46 | 画像修理・加工特化（オフライン）、液体表現、インペイント周りの「錯覚させる工夫」の充実 | 保留 | G（P3〜P5）と既存「液体表現」節に包含。液体の本格版はZ-50 | ユーザー |
+ | Z-47 | 正本ファイルの確定 | 確認済 | ユーザー決定(2026-10-03)：GitHub mainの`action-maker-v19-layer-tree.html`（index.html相当）。Library(6)版は旧基準版。AGENTS §1・PROJECT_CONTEXT §2に反映済み（GitHub反映待ち）。分割後（Z-51）は「src断片＋結合HTML」に更新する | ChatGPT指摘・ユーザー決定 |
+ | Z-48 | 五基盤の設計（時間／実行状態／保存・素材／生成アクター／条件・イベント・動作の表現） | 未着手 | ユーザー承認(2026-10-03)。1チャット（Claude設計）→ChatGPTレビュー→ユーザー採否→本書Hを確定仕様に。時間の3分離（sceneTime／simulationTime／実行状態）はChatGPT補正を採用、simulationTimeは固定ステップ数から導く（設計時に確定） | Claude提案・ChatGPT補正 |
+ | Z-49 | 再生専用HTMLの書き出し（作品を内蔵した単一HTML） | 要すり合わせ | Claude提案、ChatGPTは高く評価。時期＝条件→動作の最小版と同時期（POLICY §4の段5）。ユーザー未承認 | Claude提案 |
+ | Z-50 | 「やらない」案を後回しに変更：本格流体（粒子法）／PDF取込・本文編集／フレーム毎のお絵かき／アクション系 | 保留 | 再開条件＝流体：時計とC1の後に別HTMLで試作・速度測定／PDF取込：ライブラリ同梱方針の決定／PDF本文編集：目標から外す／お絵かき：時計・素材表・タイムライン後／アクション：固定ステップ＋条件→動作＋入力の後。AI推論は非目標 | ユーザー指摘 |
+-| Z-51 | HTML分割（開発は分割、配布は結合した1ファイル）をP1・C1の前に | 未着手 | ユーザー承認(2026-10-03「トラブルが起きない限りはい」)。担当Codex（渡した日付は依頼時に記入）。仕様＝本書I。結合結果が現行ファイルとバイト一致することで検証。分割中は本体HTMLの変更を止める | ユーザー指摘・Claude提案 |
++| Z-51 | HTML分割（開発は分割、配布は結合した1ファイル）をP1・C1の前に | 実装済(要実機) | ユーザー承認(2026-10-03「トラブルが起きない限りはい」)。担当Codex、依頼日・実装日：2026-10-03。`src/`＋`tools/build.js`＋`MODULES.md`を追加。結合結果は分割前の正本とバイト一致、構文チェック済。回帰テストはPlaywright未導入で未実行。生成物HTMLは手編集しない | ユーザー指摘・Claude提案 |
+ | Z-52 | 3D空間（別窓の独立した3D実験空間）。右手系固定、鉛直軸はz上が基本で切替可、自前投影、SI単位、時間は共通 | 未着手 | 方針承認(2026-10-03)。仕様は五基盤（H）の後に別チャットで確定。仕様＝本書J。Viewerは並行可、質点運動以降はC1の後 | ユーザー |
+ | Z-53 | Geminiはデザイン・インターフェースの助言のみ。サンプル・物理おもちゃ・パックの案出しはChatGPTへ | 実装済 | AGENTS §2・roadmap C3・§0-2を修正済み（ユーザーのチェックとGitHub反映待ち） | ユーザー決定 |
+ | Z-54 | 文書の古い記述の修正：行数・サイズ（約1,430行・125,711 bytes）、「GitHub未反映」→GitHub main反映済み、`index.html`→正本ファイル名 | 実装済 | AGENTS／PROJECT_CONTEXT／roadmapを修正済み（ユーザーのチェックとGitHub反映待ち） | Claude |
+ | Z-55 | 文書・HTMLの更新方法：AIが編集済みの完成ファイル（全文）を出力し、ユーザーがチェックしてGitHubに上げる（貼り込みはさせない） | 実装済 | AGENTS §1に追記済み（コピペの欠落・人為ミスで壊すため） | ユーザー決定 |
+diff --git a/src/document-before-script.html b/src/document-before-script.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..fb91b703a81d83c9c1167d14ba6cf72cff57e739
+--- /dev/null
++++ b/src/document-before-script.html
+@@ -0,0 +1,167 @@
++</style>
++</head>
++<body>
++<h1>アクションメーカー</h1>
++<div class="row" id="topbar"><button id="undo" aria-label="元に戻す">↩ 戻す</button><button id="redo" aria-label="やり直す">↪</button><select id="demo" aria-label="サンプル"><option value="">🎬 サンプルを見る</option><option value="a">ぱくぱく（マスク）</option><option value="b">ぐにゃぐにゃ（歪み）</option></select></div>
++<div id="wrap"><canvas id="cv"></canvas><button id="pz" aria-label="止める／うごかす">⏸</button><button id="vlk" aria-label="ビューワーを固定（もう一度押すまで拡大・移動を一切しない）">🔒</button><button id="hand" aria-label="画面を動かす（常にドラッグでパン）">✋</button><button id="zin" aria-label="拡大">＋</button><button id="zout" aria-label="縮小">－</button><button id="un2" aria-label="元に戻す">↩</button><button id="zr" style="display:none" aria-label="拡大を1倍に戻す">1×</button><button id="hq" aria-label="使い方">？</button><button id="sn2" aria-label="静止画を保存">📷</button><button id="rc2" aria-label="録画">⏺</button><button id="fsb">⛶ 拡大</button><div id="tray"></div><div class="pop" id="hint" hidden><span id="ht">オブジェクトをドラッグして配置。2本指で拡大・移動できます。</span><button id="hx" aria-label="閉じる">✕</button></div></div>
++
++<div class="pane" id="tp">
++  <div id="grip"></div>
++  <div class="row"><button id="physMode">⚙️ 物理モードに切り替え</button></div>
++  <div class="row" id="ch1"></div>
++  <div class="row" id="tabs"><button data-t="pl" class="on">配置</button><button data-t="mo">動き</button><button data-t="wp">歪み</button><button data-t="dr">描く</button><button data-t="adj">色調整</button><button data-t="fx">質感・局所</button><button data-t="mk">マスク</button><button data-t="pt">パーツ</button><button data-t="bg">背景・出力</button><button id="tc" aria-label="パネルを開閉">▾</button></div>
++
++  <div class="tab on" data-tab="pl">
++    <div class="row"><button id="bnd">境界線を表示</button><button id="clrfx">エフェクトを全消去</button></div>
++    <div class="row"><span class="lab">名前</span><input id="nm" type="text" aria-label="名前" style="flex:1;min-width:100px;font:inherit;padding:6px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:inherit"></div>
++    <div class="row"><span class="lab">大きさ</span><input id="sz" type="range" min="0.03" max="6" step="0.01" aria-label="大きさ"><b class="v" id="szv"></b></div>
++    <div class="row"><span class="lab">角度</span><input id="rt" type="range" min="-180" max="180" step="5" value="0" aria-label="止まったままの角度"><b class="v" id="rtv"></b></div>
++    <div class="row" id="fbRow" style="display:none"><span class="lab">重なり</span><button id="fbF">😀 手前</button><button id="fbB">🫥 奥</button></div>
++    <div class="row"><button id="emTgl">🎨 サンプル絵文字を使う</button></div>
++    <div class="row em" id="em" style="display:none"></div>
++    <div class="row"><label class="file">画像を選ぶ<input id="f" type="file" accept="image/*"></label><span id="ex" style="display:contents"></span></div>
++    <div class="note">回転の半径・伸び縮みの支点は「動き」タブに移しました。</div>
++  </div>
++
++  <div class="tab" data-tab="mo">
++    <div class="row"><button id="pl">⏸ とめる</button><button id="gd">範囲ガイド</button></div>
++    <div class="row"><span class="lab">全体の速さ</span><input id="gs" type="range" min="0" max="3" step="0.1" value="1" aria-label="全体の速さ（0で静止）"></div>
++    <div class="row"><span class="lab">プリセット</span><span class="note" style="margin:0">選んだ側に入ります</span></div>
++    <div class="row" id="pr"></div>
++    <div id="chs"></div>
++    <div class="note">「大きさ」は実際に動く距離（片側）です。基準が「中心」なら置いた位置を中心に両側へ、「はじ」なら置いた位置から大きさぶん離れて戻ります。方向は0°＝左右、90°＝上下、その間は斜め。ピンクの点線が動く範囲です。「回転」の半径は0だとその場で回転、大きくすると軌道を描きます。「のび縮み」の支点は、伸び縮みの基準になる位置です。</div>
++  </div>
++
++  <div class="tab" data-tab="wp"><div id="wp">
++    <details id="whelp" open><summary>使い方（タップで開閉）</summary><div class="note">①歪みの種類を選ぶ　②オブジェクトをタップ（タッチはなぞる）で歪みを追加　③「範囲」「強さ」で調整。<br>「なだらかさ」＝遠くまで広がる度合い／「反復」＝強さが波打つ／「軌道」＝歪みの中心が動く。<br>番号ボタンで、追加した歪みを選んで調整・削除できます。「✋選んで動かす」で位置も動かせます。</div></details>
++    <div class="row"><button id="wm1" class="on">＋追加する</button><button id="wm2">✋ 選んで動かす</button><button id="wsh">◎ 範囲を表示</button></div>
++    <div class="row" id="pinl"></div>
++    <div class="row"><span class="lab">同期</span><select id="wsyncSel" aria-label="歪みを同期する相手"><option value="">同期しない</option></select></div>
++    <div class="row"><button data-w="p">👆 タッチ</button><button data-w="bp">🫧 膨らみ</button><button data-w="bn">🕳 凹み</button><button data-w="b" class="on">⇅ 膨らみ↔凹み</button><button data-w="s">🌀 螺旋</button></div>
++    <div class="row"><span class="lab">範囲</span><input id="wr" type="range" min="0.05" max="0.7" step="0.01" value="0.25" aria-label="歪みの範囲"></div>
++    <div class="row"><span class="lab">なだらかさ</span><input id="wf" type="range" min="0" max="1" step="0.05" value="0.5" aria-label="歪みのなだらかさ（大きいほど遠くまでゆるやかに波及）"></div>
++    <div class="row" id="war"><span class="lab">強さ</span><input id="wa" type="range" min="-1" max="1" step="0.05" value="0.6" aria-label="歪みの強さ（マイナスで凹み）"></div>
++    <div class="row"><span class="lab">反復</span><select id="ww" aria-label="反復の波形"></select></div>
++    <div class="row"><span class="lab">振れ幅</span><input id="wb" type="range" min="0" max="1" step="0.05" value="0" aria-label="反復の振れ幅（0で静止）"></div>
++    <div class="row"><span class="lab">はやさ</span><input id="wh" type="range" min="0.1" max="8" step="0.1" value="1" aria-label="反復のはやさ"></div>
++    <div class="row"><span class="lab">軌道</span><select id="wm" aria-label="歪みの中心の軌道"><option value="sin">往復</option><option value="circle">円</option><option value="eight">8の字</option></select></div>
++    <div class="row"><span class="lab">距離</span><input id="wd" type="range" min="0" max="0.5" step="0.01" value="0" aria-label="軌道の大きさ（0で動かさない）"></div>
++    <div class="row"><span class="lab">方向</span><input id="wn" type="range" min="0" max="180" step="5" value="0" aria-label="往復の方向"></div>
++    <div class="row"><button id="wu">選んだ歪みを削除</button><button id="wc">全部消す</button></div>
++    <div class="row"><button id="wbake">🧊 歪みを画像に統合</button></div>
++    <div class="note">画面をなぞる／タップで歪みを追加します。「反復」で強さが波打ち、「軌道」で歪みの中心が往復・円運動します。</div>
++  </div></div>
++
++  <div class="tab" data-tab="dr">
++    <div class="row tools"><button data-tool="pen" class="on">✏️ ペン</button><button data-tool="eraser">🧽 消しゴム（描いた分だけ）</button><button data-tool="ieraser">🧹 消しゴム（画像ごと）</button></div>
++    <div class="row" id="es2" style="display:none"><span class="lab">消し具合</span><input id="es" type="range" min="0.1" max="1" step="0.05" value="1" aria-label="消しゴムの強さ（弱いほど半透明に残る）"></div>
++    <div class="row" id="pn"><input id="pcol" type="color" value="#e0245e" aria-label="ペンの色"><button class="pk" data-for="pcol" aria-label="スポイト">💧</button><span class="lab" style="min-width:0">太さ</span><input id="ps" type="range" min="2" max="40" value="10" aria-label="ペンの太さ"></div>
++    <div class="row"><span class="lab">文字</span><input id="tx" type="text" placeholder="文字を入力" aria-label="文字" style="flex:1;min-width:120px;font:inherit;padding:6px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:inherit"><input id="tcl" type="color" value="#2b2140" aria-label="文字の色"><button class="pk" data-for="tcl" aria-label="スポイト">💧</button></div>
++    <div class="row"><button id="addt">＋文字を置く</button><button id="addd">＋白紙レイヤー</button></div>
++    <div class="note">ペンで描いた線は、通常の「消しゴム」で描いた分だけ消せます（元の絵は残ります）。元の絵そのものを消したいときは「消しゴム（画像ごと）」を使ってください。文字を選んでいる間は、入力欄の変更がその文字に反映されます。</div>
++  </div>
++
++  <div class="tab" data-tab="adj">
++    <div class="grp alt" id="adjRange"><div class="gh">📍 適用範囲（開いているタブの調整だけに効く）</div>
++    <div class="row tools"><button id="adjScAll">全体に効かせる</button><button id="adjScRng">範囲を指定する</button></div>
++    <div class="row tools" id="adjRngRow"><button id="adjPaint">塗る</button><button id="adjErase">消す</button><button id="adjAll">全面を範囲に</button><button id="adjClear">範囲をクリア</button></div>
++    <div class="row" id="adjBsRow"><span class="lab">太さ</span><input id="adjBs" type="range" min="3" max="80" step="1" value="20" aria-label="範囲ブラシの太さ"></div>
++    <div class="row"><button id="adjShow">範囲を表示</button><span class="lab">なじみ</span><input id="adjFe" type="range" min="0" max="100" step="1" value="0" aria-label="範囲の境界のなじみ"><b class="v" id="adjFev">0</b></div>
++    <div class="note">「全体に効かせる」は選んだオブジェクト全体に適用します。「範囲を指定する」に切り替えると、塗った所だけに効きます（塗った範囲は全体に戻しても残り、切り替えで再び使えます）。全体から一部だけ除きたいときは「全面を範囲に」→「消す」。範囲は色調整と質感・局所で別々に持ちます。調整値は元画像に焼き込まず保持します。</div></div>
++    <div class="grp alt"><div class="gh">🎨 色調整</div>
++    <div class="row"><span class="lab">明るさ</span><input id="adjBr" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjBrv">0</b></div>
++    <div class="row"><span class="lab">コントラスト</span><input id="adjCo" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjCov">0</b></div>
++    <div class="row"><span class="lab">彩度</span><input id="adjSa" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjSav">0</b></div>
++    <div class="row"><span class="lab">色相</span><input id="adjHu" type="range" min="-180" max="180" step="1" value="0"><b class="v" id="adjHuv">0°</b></div>
++    <div class="row"><span class="lab">色温度</span><input id="adjTe" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjTev">0</b></div>
++    <div class="row"><span class="lab">ハイライト</span><input id="adjHi" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjHiv">0</b></div>
++    <div class="row"><span class="lab">シャドウ</span><input id="adjSh" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjShv">0</b></div>
++    <div class="row"><span class="lab">ホワイト</span><input id="adjWh" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjWhv">0</b></div>
++    <div class="row"><span class="lab">ブラック</span><input id="adjBl" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="adjBlv">0</b></div>
++    <div class="row"><button id="adjReset">調整をリセット</button></div></div>
++  </div>
++
++  <div class="tab" data-tab="fx">
++    <div class="grp alt"><div class="gh">✨ 質感・局所</div>
++    <div class="row tools" id="fxEff"><button data-fx="clarity" class="on">明瞭度</button><button data-fx="structure">ストラクチャ</button><button data-fx="texture">テクスチャ</button><button data-fx="sharp">シャープ</button><button data-fx="ambience">アンビエンス</button></div>
++    <div class="note" id="fxNote"></div>
++    <div class="row"><span class="lab">強さ</span><input id="fxAm" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="fxAmv">0</b></div>
++    <div class="row"><canvas id="fxPad" width="260" height="130" aria-label="横：効かせる大きさ、縦：局所性" style="width:min(100%,260px);height:130px;border:2px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none"></canvas></div>
++    <div class="note">パッド：横＝細部⇄大きな構造、縦＝下は画像全体の明暗差・上は周囲との差だけ。</div>
++    <details style="margin-top:6px"><summary>詳細設定（この項目だけ）</summary>
++    <div class="row"><span class="lab">スケール</span><input id="fxSc" type="range" min="0" max="100" step="1" value="50"><b class="v" id="fxScv">50</b></div>
++    <div class="row"><span class="lab">局所性</span><input id="fxLo" type="range" min="0" max="100" step="1" value="50"><b class="v" id="fxLov">50</b></div>
++    <div class="row"><span class="lab">エッジ選択</span><input id="fxEd" type="range" min="0" max="100" step="1" value="0"><b class="v" id="fxEdv">0</b></div>
++    <div class="row"><span class="lab">階調バランス</span><input id="fxBa" type="range" min="-100" max="100" step="1" value="0"><b class="v" id="fxBav">0</b></div>
++    <div class="row"><span class="lab">ノイズ抑制</span><input id="fxSo" type="range" min="0" max="100" step="1" value="0"><b class="v" id="fxSov">0</b></div>
++    </details>
++    <div class="row"><button id="fxReset">この項目をリセット</button><button id="fxResetAll">質感をすべてリセット</button></div></div>
++  </div>
++
++  <div class="tab" data-tab="mk">
++    <div class="grp"><div class="gh">🖌 マスク（他のオブジェクトを隠して消す）</div>
++    <div class="row tools"><button data-tool="mouth" class="on">🖌 マスク塗り</button><button data-tool="mouthx">マスクを消す</button></div>
++    <div class="row" id="tb"><span class="lab">太さ</span><input id="bs" type="range" min="3" max="40" step="1" value="14" aria-label="ブラシの太さ"><button id="ca">全部消す</button></div>
++    <div class="row" id="mv1"><span class="lab" style="min-width:0">マスク内の見え方</span><input id="kp" type="range" min="0" max="0.8" step="0.05" value="0" aria-label="マスク内の見え方（0で透明）"></div>
++    <div class="row" id="mv2"><button id="eat">消えた部分を残す</button><button id="rst" style="display:none">もとにもどす</button></div>
++    <div class="note">「マスク塗り」は、選んでいるオブジェクト自身に、隠す領域を描きます。他のオブジェクトを「配置」タブの「対象」でこのオブジェクトに向け、「対象のマスクで隠す」をオンにすると、ここに入った部分が消えます。</div></div>
++    <div class="grp alt"><div class="gh">〰️ ぼかし（見た目をぼかす。マスクとは別物です）</div>
++    <div class="row" id="bmr"><button data-tool="bpaint">🖌 ぼかす所を塗る</button><button data-tool="bpaintx">消す</button><button id="bfill">全体を塗る</button><button id="bmc">全部消す</button></div>
++    <div class="row"><span class="lab">塗る太さ</span><input id="bbs" type="range" min="3" max="40" step="1" value="14" aria-label="ぼかしを塗る太さ（マスクとは別設定）"></div>
++    <div class="row"><span class="lab">ぼかし</span><input id="bl" type="range" min="0" max="30" step="1" value="0" aria-label="ぼかし"><b class="v" id="blv"></b></div>
++    <div class="row"><button id="bshow">範囲を表示</button><button id="bcmp">👁 ぼかし前を見る（押している間）</button></div>
++    <div class="row"><button id="bbake">🧊 ぼかしを画像に統合</button></div>
++    <div class="note">先に「ぼかす所を塗る」（または「全体を塗る」）で範囲を決めてから、上の「ぼかし」バーで強さを決めます。</div></div>
++  </div>
++
++  <div class="tab" data-tab="pt">
++    <div class="row tools"><button data-tool="psel" class="on">🖌 囲む</button><button data-tool="pbox">▣ 矩形</button><button data-tool="pselx">囲みを消す</button></div>
++    <div class="row"><span class="lab">太さ</span><input id="pbs" type="range" min="3" max="40" step="1" value="14" aria-label="囲む太さ"><button id="pall">全体</button><button id="pclr">全部消す</button></div>
++    <div class="row"><button id="pcopy">📋 コピー</button><button id="pcut">✂ 切り取り</button><button id="pdup">🌀 全体を複製</button><button id="pclrh">置き場を空にする</button></div>
++    <div class="row"><button id="pexp">📷 このオブジェクトだけ保存（元の解像度）</button></div>
++    <div class="note">選んでいるオブジェクトの一部を囲んでコピー（または切り取り）すると、画面の左下に置かれます。サムネイルをタップすると、新しいオブジェクトとして貼り付けます。</div>
++  </div>
++
++  <div class="tab" data-tab="ph">
++    <div class="grp"><div class="gh">全体</div>
++    <div class="row"><button id="pOn">物理を有効にする</button><button id="pFloor" class="on">床</button><button id="pWall" class="on">壁</button><button id="pCol" class="on">当たり判定</button></div>
++    <div class="row"><span class="lab">重力</span><input id="pG" type="range" min="0" max="3" step="0.05" value="1" aria-label="重力の強さ（1で現実の重力相当。単位を設定していない場合は目安）"></div>
++    <div class="row"><span class="lab">重力の向き</span><input id="pGd" type="range" min="0" max="360" step="5" value="90" aria-label="重力の向き（90度＝下、0度＝右、270度＝上）"></div>
++    <div class="row"><span class="lab">時間の流れ</span><input id="pT" type="range" min="0" max="3" step="0.05" value="1" aria-label="物理の時間の流れの速さ（1で現実と同じ、0で静止）"><b class="v" id="pTv">×1</b></div>
++    </div>
++    <div class="grp alt"><div class="gh">単位（定規）</div>
++    <div class="row"><button id="pRuler">📏 定規で測る</button><span class="note" id="pRulerTx" style="margin:0">現在：100px ＝ 1m（未設定・目安）</span></div>
++    <div class="row" id="pRulerSet" style="display:none"><span class="lab" style="min-width:0">この線の長さ＝</span><input id="pRulerLen" type="number" value="1" min="0.01" step="0.01" style="width:70px" aria-label="実際の長さ(m)"><span>m</span><button id="pRulerOk">設定</button><button id="pRulerCancel">やめる</button></div>
++    <div class="note">画面上でドラッグして線を引くと、その長さが実際にどれくらいかを指定できます。設定すると、重力・質量・速度をおおよそ現実の単位（m, kg, m/s）に対応づけられます。</div>
++    </div>
++    <div class="grp alt"><div class="gh">選んでいるオブジェクト</div>
++    <div class="row"><button id="pSelOn">このオブジェクトを物理で動かす</button><button id="pFix">固定する（土台にする）</button></div>
++    <div class="row"><span class="lab">質量</span><input id="pM" type="range" min="0.2" max="10" step="0.1" value="1" aria-label="質量"></div>
++    <div class="row"><span class="lab">反発係数</span><input id="pE" type="range" min="0" max="1.1" step="0.05" value="0.55" aria-label="反発係数（大きいほどよく跳ねる）"></div>
++    <div class="row"><span class="lab">当たり判定</span><input id="pR" type="range" min="0.2" max="1.3" step="0.05" value="0.8" aria-label="当たり判定の大きさ（見た目の絵より小さくして、離れた所での衝突を減らせます）"></div>
++    <div class="row"><button id="pStop">この子の速度をとめる</button></div>
++    <div class="note">ドラッグして離すと、その勢いで飛んでいきます。「固定する」を押すと、他のオブジェクトの土台や壁になりますが自分は動きません。</div>
++    </div>
++  </div>
++
++  <div class="tab" data-tab="bg">
++    <div class="row"><span class="lab">背景</span><input id="bg1" type="color" value="#c9f0e4" aria-label="背景の上の色"><button class="pk" data-for="bg1" aria-label="スポイト">💧</button><input id="bg2" type="color" value="#f5cf7a" aria-label="背景の下の色"><button class="pk" data-for="bg2" aria-label="スポイト">💧</button><select id="bgm" aria-label="背景の種類"><option value="grad">2色</option><option value="solid">1色</option><option value="none">透明(PNGのみ)</option></select></div>
++    <div class="row"><label class="file">背景画像<input id="bgf" type="file" accept="image/*"></label><button id="bgr">画像を外す</button></div>
++    <div class="row"><span class="lab">ぼかし</span><input id="bgb" type="range" min="0" max="30" value="0" aria-label="背景のぼかし"></div>
++    <div class="row"><span class="lab">書き出し</span><button id="rec">⏺ 動画</button><button id="gif">🎞 GIF</button><span id="rtx" class="note" style="margin:0"></span></div>
++    <div class="row"><span class="lab">静止画</span><select id="sq" aria-label="倍率"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option></select><select id="sf" aria-label="形式"><option value="png">PNG</option><option value="jpg">JPEG</option></select><button id="snap">📷 保存</button></div>
++    <div class="row"><span class="lab">作品</span><button id="sv">💾 保存</button><label class="file">📂 読み込み<input id="pf" type="file" accept=".json,application/json"></label><button id="rs" style="display:none">↩ 前回の続き</button></div>
++    <div class="row"><span class="lab">処理の軽さ</span><select id="qs" aria-label="処理の軽さ"><option value="auto">自動</option><option value="0">高品質</option><option value="1">標準</option><option value="2">軽い</option></select><span id="qtx" class="note" style="margin:0"></span></div>
++    <div id="out"></div>
++    <div class="note">動画は WebM（対応端末ではMP4）、GIFは最大10秒・幅360pxです。保存できない環境では、表示された動画・画像を長押しして保存してください。</div>
++  </div>
++</div>
++
++<div id="lypop" class="lypop" hidden role="dialog" aria-label="レイヤーとオブジェクト">
++  <div class="lyhd"><b>レイヤーとオブジェクト</b><button id="lyx" aria-label="閉じる">✕</button></div>
++  <div class="lytb"><button id="lyadd">＋レイヤー</button><button id="oadd">＋オブジェクト</button><button id="oadd2">＋白紙</button><button id="lyren">レイヤー名</button><button id="lydel">🗑 レイヤー</button><button id="odel">🗑 オブジェクト</button></div>
++  <div id="lyl"></div>
++  <label class="note" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="lyphx" checked>非表示レイヤーを物理の計算から除外する</label>
++  <div class="note" style="margin-top:6px">👁＝表示／非表示（非表示は常にロック扱い）、🔒＝ロック（配置の移動だけ可）。行は長押し（マウスはドラッグ）で並べ替え。オブジェクトを別レイヤーの行やオブジェクトの上へ落とすと所属が変わります。上ほど手前。</div>
++</div>
++<script>
+\ No newline at end of file
+diff --git a/src/document-prefix.html b/src/document-prefix.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..2cd46b54c86a1024d8b4d1612140e5b4cd90f94d
+--- /dev/null
++++ b/src/document-prefix.html
+@@ -0,0 +1,8 @@
++<!DOCTYPE html>
++<html lang="ja">
++<head>
++<meta charset="utf-8">
++<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
++<title>アクションメーカー</title>
++<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;900&display=swap">
++<style>
+\ No newline at end of file
+diff --git a/src/document-suffix.html b/src/document-suffix.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..6cf8732c62875b52aab986325260fe308bc0392a
+--- /dev/null
++++ b/src/document-suffix.html
+@@ -0,0 +1,3 @@
++</script>
++</body>
++</html>
+diff --git a/src/js/00-bootstrap.js b/src/js/00-bootstrap.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..a4d66bc2e58cd2ec8e3a0b06f7387a54b541785e
+--- /dev/null
++++ b/src/js/00-bootstrap.js
+@@ -0,0 +1,8 @@
++
++const $=id=>document.getElementById(id);
++const cv=$('cv'),mctx=cv.getContext('2d');let ctx=mctx;
++const oc=document.createElement('canvas'),octx=oc.getContext('2d');
++const MR=512;const nb=()=>{const c=document.createElement('canvas');c.width=c.height=MR;return c};
++let W,H,dpr,S0;
++const E=x=>x*x*(3-2*x),cl=(v,a,b)=>Math.min(Math.max(v,a),b);
++function emo(t){const c=document.createElement('canvas');c.width=c.height=320;const g=c.getContext('2d');g.font='272px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t,160,176);return c}
+diff --git a/src/js/10-motion.js b/src/js/10-motion.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..0c394336b28b4f574a74b3ba213e80545d9e8cad
+--- /dev/null
++++ b/src/js/10-motion.js
+@@ -0,0 +1,27 @@
++
++/* 動きの基本: 往復(方向つき)・回転・のび縮み × 波形。全波形は -1〜+1 */
++const K=[['m','往復',4,.05],['r','回転',360,5],['s','のび縮み',.5,.02]];
++const WN={sin:'なめらか',tri:'三角',bounce:'バウンド',hold:'止め動き',step:'カクカク',ramp:'一方向',decay:'ぷるっ(減衰)',kick:'ドン',noise:'ゆらゆら',circle:'円(往復のみ)',eight:'8の字(往復のみ)'};
++const H0=p=>p<.3?E(p/.3):p<.55?1:p<.85?1-E((p-.55)/.3):0;
++const WV={sin:p=>Math.sin(p*6.2832),bounce:p=>2*Math.abs(Math.sin(p*Math.PI))-1,hold:p=>2*H0(p)-1,step:p=>Math.sin(6.2832*Math.floor(p*6)/6)/.866,ramp:p=>2*p-1,
++ tri:p=>p<.5?4*p-1:3-4*p,decay:p=>Math.sin(p*31.416)*Math.exp(-4*p),kick:p=>2*(p<.12?E(p/.12):1-E((p-.12)/.88))-1,
++ noise:p=>(Math.sin(p*12.566+1)+Math.sin(p*18.85+2)*.6+Math.sin(p*31.416+4)*.4)/2,circle:p=>Math.sin(p*6.2832),eight:p=>Math.sin(p*6.2832)};
++const cc0=()=>({a:0,hz:1,w:'sin',d:0,e:0,ph:0});
++const mkc=()=>({m:cc0(),r:cc0(),s:cc0()});
++
++const Z={s:1,x:0,y:0};
++const foldSet=new Set(),lyPop=document.getElementById('lypop');
++let LAYERS=[{id:1,name:'レイヤー1',visible:true,locked:false}],curLid=1,physHideEx=true,noFrame=false,wAct=false,tgtBak=null;
++let hk=0,fc=0,warpMs=0,dirtyProj=false,bpn=false,berase=false,psn=false,serase=false,pbox=false,showBm=false,cmp=false,wmode='add',dragOff=null,eraseStrength=1,showBounds=false,tool='move',wt='b',wg=null,pl=null,tm=null,pw=10,pcol='#e0245e',AC=[],sel=null,uid=0,last=0,paused=false,gs=1,guide=false,editing=false,tgt=null,paint=false,erase=false,brushMask=14,brushBlur=14,brushParts=14,adjMode='',adjBrush=20,adjShow=false,lp=null,drawing=false,pid=-1,pan=null,pz0=null,zshown=false,boxStart=null,boxEnd=null;
++const ptrs=new Map();
++const byId=id=>AC.find(a=>a.id===id);
++const EPAL=['🐻','🐥','🧒','🐱','🐶','🍎','🍜','🥤','🥄','🛏️','🎩','⚽'];
++const EDESC={'🐻':'くま','🐥':'ひよこ','🧒':'こども','🐱':'ねこ','🐶':'いぬ','🍎':'りんご','🍜':'めん','🥤':'のみもの','🥄':'スプーン','🛏️':'ベッド','🎩':'ぼうし','⚽':'ボール'};
++const pc=()=>sel;
++
++function add(em){
++  if(AC.length>=8)return;
++  const id=++uid,a={id,name:'オブジェクト'+id,img:emo(em||EPAL[AC.length%EPAL.length]),fx:.2+.2*(AC.length%4),fy:.6+.09*Math.floor(AC.length/4),
++    size:1,pv:0,face:1,rot:0,rr:0,ch:mkc(),to:null,att:false,maskTo:false,ox:.5,oy:.05,front:true,keep:0,eat:false,bite:nb(),mask:nb(),hasMask:false,wx:0,wy:0,pins:[],blur:0,bm:null,hasBm:false,bmOn:false,adj:null,adjm:null,hasAdjM:false};
++  AC.push(a);setSel(a);return a;
++}
+diff --git a/src/js/100-background-and-export.js b/src/js/100-background-and-export.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..b58c8291c8d0d44d2c32e1091908c77ef3655517
+--- /dev/null
++++ b/src/js/100-background-and-export.js
+@@ -0,0 +1,38 @@
++
++
++/* 背景 */
++const BG={m:'grad',c:'#c9f0e4',c2:'#f5cf7a',img:null,b:0};
++function drawBG(){
++  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.save();if(FILT&&BG.b)ctx.filter='blur('+BG.b+'px)';
++  if(BG.img){const iw=BG.img.naturalWidth||BG.img.width,ih=BG.img.naturalHeight||BG.img.height,k=Math.max(W/iw,H/ih);ctx.drawImage(BG.img,(W-iw*k)/2,(H-ih*k)/2,iw*k,ih*k)}
++  else if(BG.m==='solid'){ctx.fillStyle=BG.c;ctx.fillRect(0,0,W,H)}
++  else if(BG.m==='grad'){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,BG.c);g.addColorStop(.62,BG.c);g.addColorStop(.62,BG.c2);g.addColorStop(1,BG.c2);ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}
++  ctx.restore();
++}
++$('bg1').oninput=e=>{BG.c=e.target.value};$('bg2').oninput=e=>{BG.c2=e.target.value};$('bgm').onchange=e=>{BG.m=e.target.value};
++$('bgf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{BG.img=im};im.src=r.result};r.readAsDataURL(f)};
++$('bgr').onclick=()=>{BG.img=null};
++
++/* 書き出し: 録画(動画)・静止画 */
++function flagOutput(){const b=document.querySelector('#tabs [data-t="bg"]');if(b&&!document.querySelector('.tab[data-tab="bg"]').classList.contains('on'))b.classList.add('flag')}
++function showOut(url,kind,ext){
++  const o=$('out');o.innerHTML='';const el=document.createElement(kind);el.src=url;
++  if(kind==='video'){el.controls=true;el.playsInline=true;el.muted=true}
++  el.style.cssText='max-width:100%;border-radius:12px;margin-top:8px;display:block';
++  const a=document.createElement('a');a.href=url;a.download='action-maker.'+ext;a.textContent='⬇ 保存（'+ext+'）';a.className='file';a.style.cssText='display:inline-block;margin-top:6px';
++  o.append(el,a);flagOutput();
++}
++$('snap').onclick=()=>cv.toBlob(b=>b&&showOut(URL.createObjectURL(b),'img','png'),'image/png');
++let mr=null,chunks=[];
++function setRec(on){$('rec').textContent=on?'⏹ 停止':'⏺ 録画';$('rec').classList.toggle('on',on);$('rc2').textContent=on?'⏹':'⏺';$('rc2').classList.toggle('rec',on);if(!on)$('rtx').textContent=''}
++$('rec').onclick=()=>{
++  if(mr){mr.stop();return}
++  if(!cv.captureStream||!window.MediaRecorder){$('rtx').textContent='この端末は録画に未対応です';return}
++  const mt=['video/webm;codecs=vp9','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported(t))||'';
++  try{mr=new MediaRecorder(cv.captureStream(30),mt?{mimeType:mt,videoBitsPerSecond:6e6}:{})}catch(_){$('rtx').textContent='録画を始められませんでした';mr=null;return}
++  chunks=[];mr.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
++  mr.onstop=()=>{clearInterval(tm);const t=mr.mimeType||mt||'video/webm';showOut(URL.createObjectURL(new Blob(chunks,{type:t})),'video',t.includes('mp4')?'mp4':'webm');mr=null;setRec(false)};
++  mr.start();setRec(true);const t0=Date.now();
++  tm=setInterval(()=>{const q=(Date.now()-t0)/1000;$('rtx').textContent=q.toFixed(0)+'秒';if(q>=60&&mr)mr.stop()},500);
++};
++$('rc2').onclick=()=>$('rec').click();
+diff --git a/src/js/110-pen-and-text.js b/src/js/110-pen-and-text.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..4ae23d6b7e5632898b847423ac4eadb6fed88e04
+--- /dev/null
++++ b/src/js/110-pen-and-text.js
+@@ -0,0 +1,73 @@
++
++/* ペン・消しゴム(選んだ画像に直接描き込む)・文字 */
++const PENCAP=4096,UNDO_CANVAS_CAP=256*1024*1024;
++function workDims(l,cap=PENCAP){
++  const im=l.img,iw=im.naturalWidth||im.width||512,ih=im.naturalHeight||im.height||512,long=Math.max(iw,ih);
++  const L=Math.max(512,Math.min(cap,Math.round(long))),k=L/long;
++  return{w:Math.max(1,Math.round(iw*k)),h:Math.max(1,Math.round(ih*k))};
++}
++function allocCanvas(w,h,label){
++  let W=Math.max(1,Math.round(w)),H=Math.max(1,Math.round(h));
++  for(let i=0;i<8;i++){
++    let c=null;
++    try{
++      c=document.createElement('canvas');c.width=W;c.height=H;
++      const g=c.getContext('2d');if(!g)throw new Error('2d context');
++      g.fillRect(0,0,1,1);const p=g.getImageData(0,0,1,1).data;if(p.length!==4)throw new Error('canvas allocation');
++      if(i)note(label+'の作業解像度を'+W+'×'+H+'pxに下げました。');
++      return c;
++    }catch(_){
++      if(c){try{c.width=1;c.height=1}catch(_){}}
++      W=Math.max(1,Math.floor(W/2));H=Math.max(1,Math.floor(H/2));
++    }
++  }
++  throw new Error('canvas allocation failed');
++}
++function ensureBase(l){
++  if(l.base)return l.base;
++  const d=l._bd=workDims(l),c=allocCanvas(d.w,d.h,'ペン');
++  const im=l.img,iw=im.naturalWidth||im.width||1,ih=im.naturalHeight||im.height||1,k=Math.min(c.width/iw,c.height/ih);
++  c.getContext('2d').drawImage(im,(c.width-iw*k)/2,(c.height-ih*k)/2,iw*k,ih*k);
++  l._bw=c.width;l._bh=c.height;l.base=c;return c;
++}
++const bumpBP=(l,b,p)=>{if(b)l.bsv=(l.bsv||0)+1;if(p)l.pnv=(l.pnv||0)+1};
++function recompose(l){
++  const bw=l._bw||l.base?.width||512,bh=l._bh||l.base?.height||512;
++  if(!l.cv||l.cv.width!==bw||l.cv.height!==bh){l.cv=allocCanvas(bw,bh,'ペン');}
++  const g=l.cv.getContext('2d');
++  g.clearRect(0,0,bw,bh);
++  if(l.base)g.drawImage(l.base,0,0,bw,bh);
++  if(l.pen)g.drawImage(l.pen,0,0,bw,bh);
++  l.img=l.cv;l.dirty=true;l.cvv=(l.cvv||0)+1;
++}
++function loc(l,q){const t=l.M.inverse().transformPoint(new DOMPoint(q.x*dpr,q.y*dpr)),S=S0*l.size;return{u:t.x/S+.5,v:t.y/S+.5}}
++function penAt(q,l){
++  if(!l||!l.M)return;
++  ensureBase(l);const bw=l._bw,bh=l._bh,a=loc(l,q),x=a.u*bw,y=a.v*bh,bs=pw*Math.min(bw,bh)/128,px=lp?lp.x:x,py=lp?lp.y:y;
++  if(tool==='ieraser'){
++    const base=l.base,g=base.getContext('2d');
++    g.globalCompositeOperation='destination-out';g.globalAlpha=eraseStrength;g.lineWidth=bs;g.lineCap=g.lineJoin='round';
++    g.beginPath();g.moveTo(px,py);g.lineTo(x,y);g.stroke();lp={x,y};bumpBP(l,1,0);recompose(l);return;
++  }
++  if(!l.pen||l.pen.width!==bw||l.pen.height!==bh){l.pen=allocCanvas(bw,bh,'ペン');}
++  const g=l.pen.getContext('2d');
++  g.globalCompositeOperation=tool==='eraser'?'destination-out':'source-over';
++  g.globalAlpha=tool==='eraser'?eraseStrength:1;g.strokeStyle=g.fillStyle=pcol;g.lineWidth=bs;g.lineCap=g.lineJoin='round';
++  g.beginPath();g.moveTo(px,py);g.lineTo(x,y);g.stroke();lp={x,y};bumpBP(l,0,1);recompose(l);
++}
++$('pcol').oninput=e=>{pcol=e.target.value};$('ps').oninput=e=>{pw=+e.target.value};$('es').oninput=e=>{eraseStrength=+e.target.value};
++document.querySelectorAll('#tp [id^="adj"]').forEach(e=>{if(e.type==='range'&&e.id!=='adjBs')e.oninput=()=>{if(!sel)return;const map={adjBr:'brightness',adjCo:'contrast',adjSa:'saturation',adjHu:'hue',adjTe:'temperature',adjHi:'highlights',adjSh:'shadows',adjWh:'whites',adjBl:'blacks'},k=map[e.id];if(!k)return;ensureAdj(sel)[k]=+e.value;adjDirty(sel);adjUi();paintFrame()};if(e.type==='range'&&e.id!=='adjBs')e.onpointerdown=()=>{pushUndo()}});
++document.querySelectorAll('#fxEff [data-fx]').forEach(b=>b.onclick=()=>{lfSel=b.dataset.fx;lfUi()});
++LFR.forEach(([id,k])=>{const e=$(id);e.oninput=()=>{if(!sel)return;ensureLF(sel)[lfSel][k]=+e.value;adjDirty(sel);lfUi();paintFrame()};e.onpointerdown=()=>{pushUndo()}});
++$('adjFe').oninput=e=>{if(!sel)return;ensureAdj(sel).feather=+e.target.value;adjDirty(sel);adjUi();paintFrame()};
++{const P=$('fxPad');P.addEventListener('pointerdown',e=>{try{P.setPointerCapture(e.pointerId)}catch(_){}pushUndo();lfPadSet(e)});P.addEventListener('pointermove',e=>{if(e.buttons)lfPadSet(e)});P.addEventListener('pointerup',e=>{try{P.releasePointerCapture(e.pointerId)}catch(_){}})}
++$('fxReset').onclick=()=>{if(!sel)return;pushUndo();ensureLF(sel)[lfSel]=LF0(lfSel);adjDirty(sel);paintFrame();lfUi()};
++$('fxResetAll').onclick=()=>{if(!sel)return;pushUndo();sel.lf=null;ensureLF(sel);adjDirty(sel);paintFrame();lfUi()};
++$('adjScAll').onclick=()=>setScope(false);$('adjScRng').onclick=()=>setScope(true);
++$('adjPaint').onclick=()=>{adjMode=adjMode==='paint'?'':'paint';if(adjMode)setScope(true);setTool('move');adjUi()};
++$('adjErase').onclick=()=>{adjMode=adjMode==='erase'?'':'erase';if(adjMode)setScope(true);setTool('move');adjUi()};
++$('adjBs').oninput=e=>{adjBrush=+e.target.value};
++$('adjAll').onclick=()=>adjAll(true);$('adjClear').onclick=()=>adjAll(false);
++$('adjReset').onclick=adjReset;$('adjShow').onclick=()=>{adjShow=!adjShow;adjUi();paintFrame()};
++$('tx').oninput=e=>{if(sel.txt!=null){sel.txt=e.target.value;setImg(sel,txtCv(sel.txt,sel.tcol))}};
++$('tcl').oninput=e=>{if(sel.txt!=null){sel.tcol=e.target.value;setImg(sel,txtCv(sel.txt,sel.tcol))}};
+diff --git a/src/js/120-warp.js b/src/js/120-warp.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..b7a7094caa7c37be227c5756b5430ddbd1a116af
+--- /dev/null
++++ b/src/js/120-warp.js
+@@ -0,0 +1,77 @@
++
++/* 歪み: ①タッチ(押し引き) ②膨らみ/凹み ③螺旋。静止で歪ませ、反復の波形で動かせる */
++let wskip=1;const WM=.3,WX=1+2*WM,WD={r:.25,a:.6,b:0,hz:1,w:'sin',ma:0,md:0,mw:'sin',sf:.5};
++const LVCAP=[1100,480,260];
++function actorWR(l){const im=l.img,iw=im.naturalWidth||im.width||480,ih=im.naturalHeight||im.height||480;return Math.max(320,Math.min(LVCAP[lvl],Math.round(Math.max(iw,ih)*1.15)))}
++function startWarp(q,l){
++  if(!l.M)return;const c=loc(l,q);
++  if(wt==='p'){
++    const near=l.pins.filter(pp=>pp.t==='p').find(pp=>Math.hypot(pp.x-c.u,pp.y-c.v)<pp.r*.9);
++    if(near){l.ps=l.pins.indexOf(near);l.wd=true;wg={l,p:near,u:c.u,v:c.v,mv:false};renderPins();return}
++  }
++  if(l.pins.length>=12)l.pins.shift();
++  const p={t:wt==='bp'||wt==='bn'?'b':wt,x:c.u,y:c.v,r:WD.r,a:wt==='p'?1:wt==='bp'?Math.abs(WD.a):wt==='bn'?-Math.abs(WD.a):WD.a,vx:0,vy:0,b:WD.b,hz:WD.hz,w:WD.w,ma:WD.ma,md:WD.md,mw:WD.mw,sf:WD.sf,ph:0};
++  l.pins.push(p);l.ps=l.pins.length-1;l.wd=true;wg={l,p,u:c.u,v:c.v};renderPins();
++}
++function wmove(q){const{l,p,u,v}=wg,c=loc(l,q);if(p.t==='p'&&!wg.mv){p.vx=c.u-u;p.vy=c.v-v}else{p.x=c.u;p.y=c.v}l.wd=true}
++function warpFrame(l){
++  if(l===strokeActor)return;
++  const pn=l.pins;if(!pn.length){l.wo=null;return}
++  const R=actorWR(l);if(l.wo&&l._wr!==R){l.wo=null;l.sd=null;l.dirty=true}l._wr=R;
++  const anim=!paused&&pn.some(p=>p.b>0||p.ma>0);if(anim)wAct=true;
++  if(!l.wo){l.wo=document.createElement('canvas');l.wo.width=l.wo.height=R;l.wg=l.wo.getContext('2d');l.od=l.wg.createImageData(R,R);l.wd=l.dirty=true}
++  if(!(anim||l.wd||l.dirty))return;
++  if(anim&&!l.wd&&!l.dirty&&wskip>1&&fc%wskip)return;
++  if(l.dirty||!l.sd){
++    const t=document.createElement('canvas');t.width=t.height=R;const g=t.getContext('2d'),im=adjSource(l),iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
++    if(!iw||!ih)return;const B=R/WX,k=Math.min(B/iw,B/ih);g.drawImage(im,(R-iw*k)/2,(R-ih*k)/2,iw*k,ih*k);l.sd=g.getImageData(0,0,R,R).data;l.dirty=false;
++  }
++  l.wd=false;
++  const N=R,sd=l.sd,od=l.od.data;od.set(sd);
++  const ps=pn.map(p=>{const w=(WV[p.w]||WV.sin)(p.ph),t=6.2832*p.ph;let ox=0,oy=0;
++    if(p.ma){if(p.mw==='circle'){ox=p.ma*Math.cos(t);oy=-p.ma*Math.sin(t)}else if(p.mw==='eight'){ox=p.ma*Math.sin(t);oy=-p.ma*Math.sin(2*t)*.6}else{const d=p.md*Math.PI/180,q=Math.sin(t);ox=p.ma*q*Math.cos(d);oy=-p.ma*q*Math.sin(d)}}
++    return{...p,k:2.2-1.6*(p.sf===undefined?.5:p.sf),x:p.x+ox,y:p.y+oy,ea:p.t==='p'?1+p.b*w:p.t==='b'?cl(p.a+p.b*w,-.95,.95):p.a+p.b*w}});
++  const px=u=>(u+WM)/WX*N;let X0=N,Y0=N,X1=0,Y1=0;
++  for(const p of ps){X0=Math.min(X0,px(p.x-p.r));X1=Math.max(X1,px(p.x+p.r));Y0=Math.min(Y0,px(p.y-p.r));Y1=Math.max(Y1,px(p.y+p.r))}
++  X0=Math.max(0,Math.floor(X0));Y0=Math.max(0,Math.floor(Y0));X1=Math.min(N,Math.ceil(X1));Y1=Math.min(N,Math.ceil(Y1));
++  for(let y=Y0;y<Y1;y++)for(let x=X0;x<X1;x++){
++    let u=(x+.5)/N*WX-WM,v=(y+.5)/N*WX-WM,hit=false;
++    for(let i=ps.length-1;i>=0;i--){
++      const p=ps[i],dx=u-p.x,dy=v-p.y,d=Math.sqrt(dx*dx+dy*dy)/p.r;if(d>=1)continue;hit=true;const t1=1-d,f=Math.pow(t1*t1*(3-2*t1),p.k);
++      if(p.t==='b'){const k=1-p.ea*f;u=p.x+dx*k;v=p.y+dy*k}
++      else if(p.t==='s'){const a=p.ea*f*.017453,c=Math.cos(a),s=Math.sin(a);u=p.x+dx*c-dy*s;v=p.y+dx*s+dy*c}
++      else{u-=p.vx*p.ea*f;v-=p.vy*p.ea*f}
++    }
++    if(!hit)continue;
++    const sx=px(u)-.5,sy=px(v)-.5,x0=Math.floor(sx),y0=Math.floor(sy),fx=sx-x0,fy=sy-y0;let R=0,G=0,B=0,A=0;
++    for(let j=0;j<4;j++){const xi=x0+(j&1),yi=y0+(j>>1);if(xi<0||yi<0||xi>=N||yi>=N)continue;
++      const w=((j&1)?fx:1-fx)*((j>>1)?fy:1-fy),i4=(yi*N+xi)*4,al=sd[i4+3]*w;R+=sd[i4]*al;G+=sd[i4+1]*al;B+=sd[i4+2]*al;A+=al}
++    const o=(y*N+x)*4;if(A>0){od[o]=R/A;od[o+1]=G/A;od[o+2]=B/A;od[o+3]=A}else{od[o]=od[o+1]=od[o+2]=od[o+3]=0}
++  }
++  l.wg.putImageData(l.od,0,0);
++}
++const curIdx=l=>l.ps!==undefined&&l.ps<l.pins.length?l.ps:l.pins.length-1;
++const curPin=()=>sel&&sel.pins[curIdx(sel)];
++function wsync(){
++  document.querySelectorAll('#wp [data-w]').forEach(b=>b.classList.toggle('on',b.dataset.w===wt));
++  const s=wt==='s';$('war').style.display=wt==='p'?'none':'flex';
++  $('wa').min=s?-360:(wt==='bp'||wt==='bn')?0:-1;$('wa').max=s?360:1;refine($('wa'),s?10:.05);$('wa').value=(wt==='bp'||wt==='bn')?Math.abs(WD.a):WD.a;
++  $('wb').max=s?360:1;refine($('wb'),s?10:.05);$('wb').value=WD.b;$('wr').value=WD.r;$('wf').value=WD.sf;$('wd').value=WD.ma;$('wn').value=WD.md;$('wm').value=WD.mw;$('wh').value=WD.hz;$('ww').value=WD.w;
++}
++$('ww').innerHTML=Object.entries(WN).filter(([k])=>!['circle','eight','ramp'].includes(k)).map(([k,t])=>`<option value="${k}">${t}</option>`).join('');
++document.querySelectorAll('#wp [data-w]').forEach(b=>b.onclick=()=>{wt=b.dataset.w;WD.a=wt==='s'?180:wt==='bn'?-.6:.6;WD.b=0;wsync()});
++[['wr','r'],['wa','a'],['wb','b'],['wh','hz'],['wd','ma'],['wn','md'],['wf','sf']].forEach(([id,k])=>$(id).oninput=e=>{let v=+e.target.value;if(k==='a'&&wt==='bn')v=-v;WD[k]=v;const p=editable(sel)?curPin():null;if(p){p[k]=v;sel.wd=true}if(['r','b','ma'].includes(k))flashUntil=performance.now()+700;});
++$('ww').onchange=e=>{WD.w=e.target.value;const p=curPin();if(p)p.w=WD.w};
++$('wm').onchange=e=>{WD.mw=e.target.value;const p=curPin();if(p)p.mw=WD.mw};
++$('wu').onclick=()=>{if(sel&&sel.pins.length){sel.pins.splice(curIdx(sel),1);sel.ps=undefined;sel.wd=true;renderPins()}};
++$('wc').onclick=()=>{if(sel){sel.pins=[];sel.ps=undefined;sel.wd=true;renderPins()}};
++$('wbake').onclick=()=>{
++  const l=sel;if(!l||!l.pins.length)return;pushUndo();
++  const oldLvl=lvl;lvl=0;l.wo=null;l.sd=null;l.wd=true;warpFrame(l);lvl=oldLvl;
++  if(l.wo){ensureBase(l);const bw=l._bw,bh=l._bh,bg=l.base.getContext('2d'),R=l.wo.width,sx=(R-bw/WX)/2,sy=(R-bh/WX)/2;bg.clearRect(0,0,bw,bh);bg.drawImage(l.wo,sx,sy,bw/WX,bh/WX,0,0,bw,bh);if(l.pen)l.pen.getContext('2d').clearRect(0,0,l.pen.width,l.pen.height);bumpBP(l,1,1);recompose(l)}
++  l.pins=[];l.syncTo=null;l.ps=undefined;l.wo=null;l.sd=null;renderPins();
++  note('歪みを画像に統合しました。見た目はそのままで、一覧からは消えています。');
++};
++wsync();
++
++const HT={pen:'なぞって描く（あとから「消しゴム」で描いた分だけ消せます）',eraser:'なぞって、描いた分だけ消す（元の絵は残ります）',warp:'触った所を歪ませる（動きは止まります）',mouth:'なぞってマスク領域を塗る（対象に選んだオブジェクトが入った部分が消えます）',mouthx:'マスク領域の塗りを消す',bpaint:'ぼかしたい所をなぞる。塗った所だけが「ぼかし」のバーでぼけます（全体は「全体を塗る」）',bpaintx:'ぼかす範囲の塗りを消す',psel:'コピー／切り取りしたい部分をなぞって囲む',pbox:'コピー／切り取りしたい部分を四角形で選ぶ',pselx:'囲みを消す',ieraser:'なぞって、絵そのものを消す（元の絵には戻せません）'};
+diff --git a/src/js/130-gif.js b/src/js/130-gif.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..e912e40331ccc2840e96e4a0e0fdbf12bdaf6c85
+--- /dev/null
++++ b/src/js/130-gif.js
+@@ -0,0 +1,39 @@
++/* GIF書き出し(外部ライブラリなし): 216色パレット+ディザ+LZW */
++const PAL=(()=>{const p=[];for(let r=0;r<6;r++)for(let g=0;g<6;g++)for(let b=0;b<6;b++)p.push(r*51,g*51,b*51);while(p.length<768)p.push(0);return p})();
++const BAY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
++function quant(d,w,h){const o=new Uint8Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(y*w+x)*4,t=(BAY[(y&3)*4+(x&3)]-7.5)*3.2,q=v=>Math.min(5,Math.max(0,Math.round((v+t)/51)));o[y*w+x]=36*q(d[i])+6*q(d[i+1])+q(d[i+2])}return o}
++function lzw(ix){
++  const out=[],dict=new Map();let bits=0,nb=0,cs=9,next=258;
++  const put=c=>{bits|=c<<nb;nb+=cs;while(nb>=8){out.push(bits&255);bits>>>=8;nb-=8}};
++  put(256);let pre=ix[0];
++  for(let i=1;i<ix.length;i++){const k=ix[i],key=pre*256+k,v=dict.get(key);
++    if(v!==undefined){pre=v;continue}
++    put(pre);
++    if(next<4096){dict.set(key,next++);if(next>(1<<cs)&&cs<12)cs++}else{put(256);dict.clear();next=258;cs=9}
++    pre=k}
++  put(pre);put(257);if(nb>0)out.push(bits&255);return out;
++}
++function gifBlob(fr,w,h,dl){
++  const o=[],u16=n=>o.push(n&255,(n>>8)&255);
++  o.push(71,73,70,56,57,97);u16(w);u16(h);o.push(0xF7,0,0);for(const v of PAL)o.push(v);
++  o.push(0x21,0xFF,11,78,69,84,83,67,65,80,69,50,46,48,3,1,0,0,0);
++  for(const ix of fr){
++    o.push(0x21,0xF9,4,0);u16(dl);o.push(0,0);o.push(0x2C);u16(0);u16(0);u16(w);u16(h);o.push(0,8);
++    const c=lzw(ix);for(let i=0;i<c.length;i+=255){const n=Math.min(255,c.length-i);o.push(n);for(let j=0;j<n;j++)o.push(c[i+j])}o.push(0);
++  }
++  o.push(0x3B);return new Blob([new Uint8Array(o)],{type:'image/gif'});
++}
++let gf=null;
++$('gif').onclick=()=>{
++  if(gf){gf.stop();return}
++  const tw=Math.min(360,cv.width),th=Math.round(cv.height*tw/cv.width),t=document.createElement('canvas');t.width=tw;t.height=th;
++  const g=t.getContext('2d',{willReadFrequently:true}),fr=[];
++  const iv=setInterval(()=>{g.drawImage(cv,0,0,tw,th);fr.push(quant(g.getImageData(0,0,tw,th).data,tw,th));$('rtx').textContent=fr.length+'コマ';if(fr.length>=120&&gf)gf.stop()},1000/12);
++  gf={stop(){clearInterval(iv);gf=null;$('gif').textContent='🎞 GIF';$('gif').classList.remove('on');$('rtx').textContent='変換中…';
++    setTimeout(()=>{if(fr.length){showOut(URL.createObjectURL(gifBlob(fr,tw,th,8)),'img','gif')}$('rtx').textContent=''},30)}};
++  $('gif').textContent='⏹ 停止';$('gif').classList.add('on');
++};
++document.querySelectorAll('#tabs [data-t]').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
++$('addt').onclick=()=>addSpecial('t');$('addd').onclick=()=>addSpecial('d');
++$('bl').oninput=e=>{sel.blur=+e.target.value;$('blv').textContent=sel.blur+'px';if(!sel.hasBm&&!sel._w){sel._w=1;note('ぼかす所がまだありません。先に「ぼかす所を塗る」か「全体を塗る」を押してください')}};
++$('bgb').oninput=e=>{BG.b=+e.target.value};
+diff --git a/src/js/140-controls.js b/src/js/140-controls.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..7e554d4de24d01498ba3f0cc8d1747e3b9f435cd
+--- /dev/null
++++ b/src/js/140-controls.js
+@@ -0,0 +1,18 @@
++
++/* ===== ± ボタンと数値入力(全スライダー) ===== */
++function refine(r,st){const f=st>=1?1:+(st/5).toFixed(4);r.dataset.f=f;r.step=f}
++function enh(root){
++  root.querySelectorAll('input[type=range]:not([data-e])').forEach(r=>{
++    r.dataset.e=1;if(!r.dataset.f)refine(r,+r.step||1);
++    const bt=(t,d)=>{const b=document.createElement('button');b.type='button';b.className='stp';b.textContent=t;b.setAttribute('aria-label',d>0?'増やす':'減らす');
++      const go=()=>{r.value=cl(+(+r.value+d*(+r.dataset.f)).toFixed(4),+r.min,+r.max);r.dispatchEvent(new Event('input',{bubbles:true}))};
++      let t1,t2;const stop=()=>{clearTimeout(t1);clearInterval(t2)};
++      b.onpointerdown=e=>{e.preventDefault();go();t1=setTimeout(()=>{t2=setInterval(go,70)},380)};
++      b.onpointerup=b.onpointerleave=b.onpointercancel=stop;return b};
++    const n=document.createElement('input');n.type='number';n.className='num';n.inputMode='decimal';n.step=r.dataset.f;n.setAttribute('aria-label',(r.getAttribute('aria-label')||'値')+'（数値入力）');
++    n.onchange=()=>{const v=parseFloat(n.value);if(isNaN(v))return;r.value=cl(v,+r.min,+r.max);r.dispatchEvent(new Event('input',{bubbles:true}));n.value=r.value};
++    r.before(bt('−',-1));r.after(bt('＋',1),n);r._n=n;n.value=r.value;
++    const v=r.parentNode.querySelector('.v');if(v)v.style.display='none';
++  });
++}
++function syncNums(){document.querySelectorAll('input[data-e]').forEach(r=>{const n=r._n;if(n&&document.activeElement!==n&&n.value!==r.value)n.value=r.value})}
+diff --git a/src/js/150-blur.js b/src/js/150-blur.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..db892a620d36d09e68ff985cde512f1f3f3f1a4a
+--- /dev/null
++++ b/src/js/150-blur.js
+@@ -0,0 +1,58 @@
++
++/* ===== 指定した所だけぼかす(ぼかしマスク) ===== */
++const ob1=document.createElement('canvas'),og1=ob1.getContext('2d'),ob2=document.createElement('canvas'),og2=ob2.getContext('2d');
++function blurRegion(l,S){
++  const cur=ctx.getTransform(),main=ctx;
++  for(const g of[og1,og2]){g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,ob1.width,ob1.height);g.setTransform(cur)}
++  ctx=og1;img(l,S,0);ctx=og2;img(l,S,l.blur);ctx=main;
++  og1.globalCompositeOperation='destination-out';og2.globalCompositeOperation='destination-in';
++  og1.drawImage(l.bm,-S/2,-S/2,S,S);og2.drawImage(l.bm,-S/2,-S/2,S,S);
++  og1.globalCompositeOperation=og2.globalCompositeOperation='source-over';
++  main.save();main.setTransform(1,0,0,1,0,0);main.drawImage(ob1,0,0);main.drawImage(ob2,0,0);main.restore();
++}
++function strokeSel(q){
++  const l=pl;if(!l||!l.M)return;const key=psn?'sm':'bm',col=psn?'#ff5d8f':'#3b82f6',er=psn?serase:berase;
++  const c=l[key]||(l[key]=nb()),a=loc(l,q),g=c.getContext('2d'),x=a.u*MR,y=a.v*MR;
++  const bsz=psn?brushParts:brushBlur;g.globalCompositeOperation=er?'destination-out':'source-over';g.strokeStyle=g.fillStyle=g.shadowColor=col;g.shadowBlur=bsz*.7;g.lineWidth=bsz*2;g.lineCap='round';
++  g.beginPath();g.moveTo(lp?lp.x:x,lp?lp.y:y);g.lineTo(x,y);g.stroke();lp={x,y};l[psn?'hasSm':'hasBm']=true;l[key+'v']=(l[key+'v']||0)+1;if(!psn&&l.blur===0){l.blur=15;$('bl').value=15;$('blv').textContent='15px'}
++}
++function rectSel(l,a,b){
++  if(!l||!l.M)return;
++  const c=l.sm||(l.sm=nb()),g=c.getContext('2d');
++  const x=Math.min(a.u,b.u)*MR,y=Math.min(a.v,b.v)*MR,w=Math.abs(b.u-a.u)*MR,h=Math.abs(b.v-a.v)*MR;
++  g.clearRect(0,0,MR,MR);
++  g.globalCompositeOperation='source-over';g.fillStyle='#ff5d8f';g.fillRect(x,y,w,h);
++  l.hasSm=w>0&&h>0;l.smv=(l.smv||0)+1;
++}
++function fillSel(key,col){const l=sel;const c=l[key]||(l[key]=nb()),g=c.getContext('2d');g.globalCompositeOperation='source-over';g.fillStyle=col;g.fillRect(0,0,MR,MR);l[key==='bm'?'hasBm':'hasSm']=true;l[key+'v']=(l[key+'v']||0)+1;if(key==='bm'&&l.blur===0){l.blur=15;$('bl').value=15;$('blv').textContent='15px'}}
++function outlineOf(l,key,vk,col){
++  const v=l[vk]||0,f='_ol'+key,o=l[f];if(o&&o.v===v)return o.c;
++  const c=nb(),g=c.getContext('2d'),e=nb(),eg=e.getContext('2d'),src=l[key];
++  eg.drawImage(src,0,0);eg.globalCompositeOperation='destination-in';for(const[dx,dy]of[[5,0],[-5,0],[0,5],[0,-5],[4,4],[-4,4],[4,-4],[-4,-4]])eg.drawImage(src,dx,dy);
++  g.drawImage(src,0,0);g.globalCompositeOperation='destination-out';g.drawImage(e,0,0);g.globalCompositeOperation='source-in';g.fillStyle=col;g.fillRect(0,0,MR,MR);
++  l[f]={v,c};return c;
++}
++function ovl(l,S,key,vk,col){const c=l[key];ctx.save();ctx.globalAlpha=.16;ctx.drawImage(c,-S/2,-S/2,S,S);ctx.globalAlpha=1;ctx.drawImage(outlineOf(l,key,vk,col==='#3b82f6'?'#00c3ff':'#ff2d87'),-S/2,-S/2,S,S);ctx.restore()}
++let showPins=false,flashUntil=0;
++function drawPins(l,S){
++  const ci=curIdx(l);ctx.save();ctx.lineWidth=1;ctx.globalAlpha=.55;
++  l.pins.forEach((p,i)=>{const x=(p.x-.5)*S,y=(p.y-.5)*S;ctx.strokeStyle=ctx.fillStyle=i===ci?'#ff2d87':'#ffffff';ctx.setLineDash([4,4]);
++    ctx.beginPath();ctx.arc(x,y,p.r*S,0,6.283);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(x,y,3,0,6.283);ctx.fill()});
++  ctx.restore();
++}
++function syncBm(){$('bshow').classList.toggle('on',showBm)}
++$('bshow').onclick=()=>{showBm=!showBm;syncBm()};
++$('bfill').onclick=()=>fillSel('bm','#3b82f6');
++$('bbs').oninput=e=>{brushBlur=+e.target.value};
++$('bbake').onclick=()=>{
++  const l=sel;if(!l||!l.hasBm||!l.blur){note('先にぼかしを塗って、強さを付けてください');return}
++  pushUndo();
++  const{c,W,H}=boxCv(l);ensureBase(l);const BR=l._bw;
++  l.base.getContext('2d').clearRect(0,0,BR,BR);l.base.getContext('2d').drawImage(c,0,0,c.width,c.height,0,0,BR,BR);
++  if(l.pen)l.pen.getContext('2d').clearRect(0,0,l.pen.width,l.pen.height);bumpBP(l,1,1);
++  l.blur=0;l.hasBm=false;if(l.bm)l.bm.getContext('2d').clearRect(0,0,MR,MR);
++  recompose(l);
++  note('ぼかしを画像に統合しました。');
++};
++const cmpOn=()=>{cmp=true},cmpOff=()=>{cmp=false};$('bcmp').onpointerdown=cmpOn;$('bcmp').onpointerup=$('bcmp').onpointerleave=$('bcmp').onpointercancel=cmpOff;
++$('bmc').onclick=()=>{if(sel.bm)sel.bm.getContext('2d').clearRect(0,0,MR,MR);sel.hasBm=false;sel.bmv=(sel.bmv||0)+1};
+diff --git a/src/js/160-still-export.js b/src/js/160-still-export.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..93478dae7ed5597ec46635b9eb38cd4e4bee2fa2
+--- /dev/null
++++ b/src/js/160-still-export.js
+@@ -0,0 +1,8 @@
++
++/* ===== 静止画(高解像度) ===== */
++function snapImg(){
++  const k=+$('sq').value,jpg=$('sf').value==='jpg';hk=k;fit();paintFrame();
++  cv.toBlob(b=>{if(b)showOut(URL.createObjectURL(b),'img',jpg?'jpg':'png')},jpg?'image/jpeg':'image/png',.92);
++  hk=0;fit();
++}
++$('snap').onclick=snapImg;$('sn2').onclick=snapImg;
+diff --git a/src/js/170-undo.js b/src/js/170-undo.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..17b8f9e7143dd5852f3a336360a61ac0db16cdf4
+--- /dev/null
++++ b/src/js/170-undo.js
+@@ -0,0 +1,42 @@
++
++/* ===== 元に戻す / やり直す ===== */
++const cloneC=c=>{const t=document.createElement('canvas');t.width=c.width;t.height=c.height;t.getContext('2d').drawImage(c,0,0);return t};
++const SKIP=new Set(['img','cv','mask','bm','sm','bite','base','pen','adjm','lfm','_adjC','wo','wg','od','sd','F','M','wx','wy','ph','dirty','wd']);
++function frz(a,k,vk){const c=a[k];if(!c)return null;const f=a['_f'+k],v=a[vk]||0;if(f&&f.v===v)return f.c;const t=cloneC(c);a['_f'+k]={v,c:t};return t}
++function snap(){
++  const acs=AC.map(a=>({p:JSON.parse(JSON.stringify(a,(k,v)=>(SKIP.has(k)||k[0]==='_')?undefined:v)),img:a.cv?null:a.img,cv:a.base?null:frz(a,'cv','cvv'),base:frz(a,'base','bsv'),pen:frz(a,'pen','pnv'),mask:frz(a,'mask','mkv'),bm:frz(a,'bm','bmv'),bite:a.bite,adjm:frz(a,'adjm','adjmv'),lfm:frz(a,'lfm','lfmv')}));
++  const B={m:BG.m,c:BG.c,c2:BG.c2,b:BG.b,img:BG.img,v:BG.v||0};
++  return{acs,B,L:LAYERS.map(y=>({...y})),cl:curLid,sel:AC.indexOf(sel),sig:JSON.stringify([acs.map(x=>x.p),B.m,B.c,B.c2,B.b,B.v,!!B.img,LAYERS])};
++}
++function bgUi(){$('bg1').value=BG.c;$('bg2').value=BG.c2;$('bgm').value=BG.m;$('bgb').value=BG.b}
++function restore(sn){
++  AC=sn.acs.map(s=>{const a=s.p;for(const k in a.ch)a.ch[k].ph=0;for(const p of a.pins)p.ph=0;
++    a.img=s.img;a.cv=null;if(s.cv){a.cv=cloneC(s.cv);a.img=a.cv}
++    a.mask=s.mask?cloneC(s.mask):nb();a.bm=s.bm?cloneC(s.bm):null;a.bite=s.bite||nb();a.adjm=s.adjm?cloneC(s.adjm):null;a.hasAdjM=!!a.adjm;a.lfm=s.lfm?cloneC(s.lfm):null;a.hasLFM=!!a.lfm;
++    a.sd=null;a.wo=null;a.base=null;a.pen=null;a._adjC=null;a._adjRef=null;a._adjDirty=true;a.dirty=true;a.wd=true;a.wx=0;a.wy=0;
++    if(s.base){a.base=cloneC(s.base);a._bw=a.base.width;a._bh=a.base.height;a.pen=s.pen?cloneC(s.pen):null;recompose(a)}
++    return a});
++  AC.forEach(a=>{if(a.syncTo!=null){const t=byId(a.syncTo);if(t)a.pins=t.pins}});
++  Object.assign(BG,{m:sn.B.m,c:sn.B.c,c2:sn.B.c2,b:sn.B.b,img:sn.B.img,v:sn.B.v});bgUi();
++  if(sn.L){LAYERS=sn.L.map(y=>({...y}));curLid=sn.cl}
++  setSel(AC[sn.sel]||AC[0]);
++}
++const US=[],RS=[];
++let undoSeq=0;
++function snapBytes(sn){const px=c=>c?c.width*c.height*4:0;return sn.acs.reduce((n,a)=>n+px(a.cv)+px(a.base)+px(a.pen),0)}
++function historyBytes(){let n=0;for(const s of US)n+=snapBytes(s);for(const s of RS)n+=snapBytes(s);return n}
++function trimHistory(){
++  while(historyBytes()>UNDO_CANVAS_CAP&&(US.length+RS.length)>1){
++    let arr=US,idx=0,min=Infinity;
++    for(const [i,s] of US.entries())if((s._uh||0)<min){min=s._uh||0;arr=US;idx=i}
++    for(const [i,s] of RS.entries())if((s._uh||0)<min){min=s._uh||0;arr=RS;idx=i}
++    arr.splice(idx,1);
++  }
++}
++function pushUndo(){const sn=snap();if(US.length&&US[US.length-1].sig===sn.sig)return;sn._uh=++undoSeq;US.push(sn);trimHistory();RS.length=0;dirtyProj=true}
++function undo(){if(!US.length)return;const sn=snap();sn._uh=++undoSeq;RS.push(sn);restore(US.pop());trimHistory()}
++function redo(){if(!RS.length)return;const sn=snap();sn._uh=++undoSeq;US.push(sn);restore(RS.pop());trimHistory()}
++$('undo').onclick=undo;$('un2').onclick=undo;$('redo').onclick=redo;
++$('tp').addEventListener('pointerdown',e=>{if(!e.target.closest('#tabs'))pushUndo()},true);
++$('tp').addEventListener('focusin',e=>{if(e.target.type==='number'||e.target.type==='text')pushUndo()});
++addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&!/^(text|number)$/.test(document.activeElement.type||'')){if(e.key==='z'){e.preventDefault();e.shiftKey?redo():undo()}else if(e.key==='y'){e.preventDefault();redo()}}});
+diff --git a/src/js/180-project-io.js b/src/js/180-project-io.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..9fc0bed4632461ebe71218d541cb7a96ef9e8197
+--- /dev/null
++++ b/src/js/180-project-io.js
+@@ -0,0 +1,37 @@
++
++/* ===== 作品の保存・読み込み ===== */
++function u2(c){if(!c)return null;const w=c.naturalWidth||c.width,h=c.naturalHeight||c.height;if(!w)return null;const t=document.createElement('canvas');t.width=w;t.height=h;t.getContext('2d').drawImage(c,0,0);return t.toDataURL('image/png')}
++function ser(){
++  return JSON.stringify({v:1,uid,sel:AC.indexOf(sel),LAY:{L:LAYERS,cur:curLid,hx:physHideEx},BG:{...BG,img:u2(BG.img)},
++    AC:AC.map(a=>{const o=JSON.parse(JSON.stringify(a,(k,v)=>(SKIP.has(k)||k[0]==='_')?undefined:v));
++      o.img=u2(a.img);o.iscv=!!a.cv;o.mask=a.mask&&a.hasMask?u2(a.mask):null;o.bm=a.bm&&a.hasBm?u2(a.bm):null;o.bite=a.bite&&a.eat?u2(a.bite):null;o.adjm=a.adjm&&a.hasAdjM?u2(a.adjm):null;o.lfm=a.lfm&&a.hasLFM?u2(a.lfm):null;return o})});
++}
++const li=src=>new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
++const toC=(im,w)=>{if(!im)return null;const c=document.createElement('canvas');c.width=w||im.width;c.height=w||im.height;c.getContext('2d').drawImage(im,0,0);return c};
++async function loadProj(txt){
++  const d=JSON.parse(txt),list=[];
++  for(const o of d.AC){
++    const[img,mask,bm,bite,adjm,lfm]=await Promise.all([li(o.img),li(o.mask),li(o.bm),li(o.bite),li(o.adjm),li(o.lfm)]),a={...o};
++    a.img=img||emo('❓');a.cv=null;a.sd=null;a.wo=null;a.dirty=true;a.wd=true;a.wx=0;a.wy=0;a.base=null;a.pen=null;
++    for(const k in a.ch)a.ch[k].ph=0;for(const p of a.pins||[])p.ph=0;
++    if(o.iscv&&img){a.cv=toC(img);a.img=a.cv}
++    a.mask=toC(mask,MR)||nb();a.bm=bm?toC(bm,MR):null;a.bite=toC(bite,MR)||nb();a.adjm=adjm?toC(adjm,MR):null;a.hasAdjM=!!a.adjm;a.lfm=lfm?toC(lfm,MR):null;a.hasLFM=!!a.lfm;a.base=null;a.pen=null;a._adjC=null;a._adjRef=null;a._adjDirty=true;if(!a.adj)a.adj=ADJ0();if(a.maskTo===undefined)a.maskTo=(a.kind==='o'&&!!a.to);delete a.iscv;list.push(a);
++  }
++  const bgI=await li(d.BG.img);pushUndo();
++  AC=list;uid=d.uid||list.length;
++  LAYERS=(d.LAY&&d.LAY.L&&d.LAY.L.length?d.LAY.L:[{id:1,name:'レイヤー1',visible:true,locked:false}]).map(y=>({...y}));curLid=(d.LAY&&d.LAY.cur)||LAYERS[0].id;physHideEx=d.LAY?d.LAY.hx!==false:true;
++  AC.forEach(a=>{if(a.layerId==null||!LAYERS.some(y=>y.id===a.layerId))a.layerId=LAYERS[0].id});
++  AC.forEach(a=>{if(a.syncTo!=null){const t=byId(a.syncTo);if(t)a.pins=t.pins}});
++  Object.assign(BG,d.BG,{img:bgI,v:(BG.v||0)+1});bgUi();setSel(AC[d.sel]||AC[0]);
++}
++function saveProj(){
++  const url=URL.createObjectURL(new Blob([ser()],{type:'application/json'})),o=$('out');o.innerHTML='';
++  const a=document.createElement('a');a.href=url;a.download='action-maker-project.json';a.textContent='⬇ 作品ファイル(.json)を保存';a.className='file';a.style.cssText='display:inline-block;margin-top:6px';o.append(a);a.click();dirtyProj=false;
++}
++$('sv').onclick=saveProj;
++$('pf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>loadProj(r.result).catch(()=>{$('rtx').textContent='読み込めませんでした'});r.readAsText(f)};
++$('rs').onclick=()=>{try{loadProj(localStorage.getItem('am_auto'))}catch(_){}};
++addEventListener('beforeunload',e=>{if(dirtyProj){e.preventDefault();e.returnValue=''}});
++function autosave(){if(!dirtyProj)return;try{localStorage.setItem('am_auto',ser());dirtyProj=false;$('rs').style.display=''}catch(_){}}
++setInterval(autosave,20000);addEventListener('pagehide',autosave);
++function initExtra(){try{if(localStorage.getItem('am_auto'))$('rs').style.display=''}catch(_){}enh(document)}
+diff --git a/src/js/190-hints-and-demos.js b/src/js/190-hints-and-demos.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..1b0f16fa1981a6d51019ba9e1529cb5262ac89f7
+--- /dev/null
++++ b/src/js/190-hints-and-demos.js
+@@ -0,0 +1,30 @@
++
++/* ===== ヒント(ポップアップ) ===== */
++$('hq').onclick=()=>{$('hint').hidden=!$('hint').hidden;clearTimeout(hto)};$('hx').onclick=()=>{$('hint').hidden=true};
++
++/* ===== サンプル ===== */
++function blob(col){
++  const c=document.createElement('canvas');c.width=c.height=320;const g=c.getContext('2d'),e=(x,y,rx,ry,f)=>{g.fillStyle=f;g.beginPath();g.ellipse(x,y,rx,ry,0,0,6.283);g.fill()};
++  e(160,180,120,110,col);e(120,130,45,26,'rgba(255,255,255,.4)');e(115,165,13,18,'#2b2140');e(205,165,13,18,'#2b2140');e(120,158,5,5,'#fff');e(210,158,5,5,'#fff');
++  e(160,222,26,20,'#7a1f3d');e(160,232,15,8,'#ff8fa3');e(88,205,16,9,'rgba(255,90,120,.35)');e(232,205,16,9,'rgba(255,90,120,.35)');return c;
++}
++const cs=(a,k,v,ph)=>{a.ch[k]={a:v[0],hz:v[1],w:v[2],d:v[3]||0,e:v[4]||0,ph:ph||0}};
++const mkpin=(t,x,y,r,o)=>({t,x,y,r,a:o.a!==undefined?o.a:(t==='p'?1:.6),vx:o.vx||0,vy:o.vy||0,b:o.b||0,hz:o.hz||1,w:o.w||'sin',ma:o.ma||0,md:o.md||0,mw:o.mw||'sin',ph:0});
++function resetAll(){pushUndo();AC=[];uid=0;sel=null;Z.s=1;Z.x=Z.y=0;paused=false;$('pl').textContent='⏸ とめる';$('pz').textContent='⏸';BG.img=null;BG.b=0;BG.m='grad';BG.v=(BG.v||0)+1}
++function note(t){$('ht').textContent=t;$('hint').hidden=false;clearTimeout(hto);hto=setTimeout(()=>{$('hint').hidden=true},7000)}
++function demoA(){
++  resetAll();BG.c='#ffe8f0';BG.c2='#ffc4d8';bgUi();
++  const c=add();setImg(c,blob('#ff9ec0'));Object.assign(c,{fx:.34,fy:.64,size:1.7,name:'ぱくぱく'});cs(c,'s',[.05,3,'sin']);
++  const g=c.mask.getContext('2d');g.fillStyle='#ff3b7a';g.beginPath();g.ellipse(128,178,22,18,0,0,6.283);g.fill();c.hasMask=true;c.mkv=1;
++  ['🍓','🍩','🍎'].forEach((e,i)=>{const o=add(e);Object.assign(o,{size:.26,to:c.id,att:true,maskTo:true,ox:.95,oy:.194,name:'えさ'+(i+1)});cs(o,'m',[1.615,.5,'ramp',180,1],i/3)});
++  const t=addSpecial('t');t.txt='もぐもぐ♪';t.tcol='#7a1f3d';setImg(t,txtCv(t.txt,t.tcol));Object.assign(t,{fx:.72,fy:.2,size:1.3});cs(t,'m',[.08,.8,'noise',90]);
++  setSel(AC[0]);note('ぱくぱく：えさ側の「対象のマスクで隠す」をオンにして、対象（顔）のマスク領域に入った部分を消しています。各タブを触ると中身を変えられます。');
++}
++function demoB(){
++  resetAll();BG.c='#3a2470';BG.c2='#7a4fc0';bgUi();
++  const c=add();setImg(c,blob('#7be0a4'));Object.assign(c,{fx:.5,fy:.66,size:2.3,name:'ぐにゃ'});cs(c,'m',[.22,.9,'bounce',90,1]);
++  c.pins=[mkpin('s',.34,.47,.28,{a:200,b:160,hz:.5,ma:.08,mw:'circle'}),mkpin('b',.7,.62,.3,{a:.5,b:.45,hz:1.3,w:'decay'}),mkpin('p',.5,.78,.3,{vy:-.12,b:.9,hz:.9}),mkpin('b',.5,.22,.2,{a:-.6,b:.5,hz:.7,ma:.1,md:0,mw:'sin'})];
++  const t=addSpecial('t');t.txt='ぐにゃ〜';t.tcol='#ffe066';setImg(t,txtCv(t.txt,t.tcol));Object.assign(t,{fx:.5,fy:.14,size:1.6});cs(t,'r',[6,1.2,'sin']);
++  setSel(AC[0]);note('ぐにゃぐにゃ：「歪み」の螺旋・膨らみ・タッチを重ね、軌道と反復で動かしています。');
++}
++$('demo').onchange=e=>{const f={a:demoA,b:demoB}[e.target.value];if(f)f();e.target.value=''};
+diff --git a/src/js/20-adjustments.js b/src/js/20-adjustments.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..460361403ba21d9428adabd24f23dbfe91c03a0d
+--- /dev/null
++++ b/src/js/20-adjustments.js
+@@ -0,0 +1,111 @@
++const COLK=['brightness','contrast','saturation','hue','temperature','highlights','shadows','whites','blacks'],LFK=['clarity','structure','texture','sharp','ambience'];
++const ADJ0=()=>({brightness:0,contrast:0,saturation:0,hue:0,temperature:0,highlights:0,shadows:0,whites:0,blacks:0,feather:0});
++function ensureAdj(l){if(!l.adj)l.adj=ADJ0();else if(l.adj.feather===undefined)l.adj.feather=0;return l.adj}
++function adjActive(l){const a=ensureAdj(l);return COLK.some(k=>Math.abs(a[k])>0.0001)}
++const LFD={clarity:{scale:60,locality:70,edge:20,balance:0,softness:30},structure:{scale:40,locality:70,edge:30,balance:0,softness:30},texture:{scale:15,locality:80,edge:20,balance:0,softness:40},sharp:{scale:10,locality:90,edge:50,balance:0,softness:60},ambience:{scale:80,locality:40,edge:0,balance:0,softness:50}};
++const LF0=k=>({amount:0,...LFD[k]});
++function ensureLF(l){if(!l.lf)l.lf={};for(const k of LFK)if(!l.lf[k])l.lf[k]=LF0(k);return l.lf}
++function lfActive(l){const f=ensureLF(l);return LFK.some(k=>Math.abs(f[k].amount)>0.0001)}
++let rngT='adj',lfSel='clarity';
++function adjSource(l){
++  const im=l.img;if(!im||!adjActive(l)&&!lfActive(l)&&!l.hasAdjM&&!l.hasLFM)return im;
++  const iw=im.naturalWidth||im.width||0,ih=im.naturalHeight||im.height||0;if(!iw||!ih)return im;
++  if(l._adjC&&l._adjC.width===iw&&l._adjC.height===ih&&!l._adjDirty&&l._adjRef===im)return l._adjC;
++  const a=ensureAdj(l),MK=adjMask(l,a,'adjm');
++  const c=allocCanvas(iw,ih,'色調整'),g=c.getContext('2d');g.drawImage(im,0,0);const d=g.getImageData(0,0,iw,ih),p=d.data;
++  const clamp01=v=>Math.max(0,Math.min(1,v)),ss=v=>v*v*(3-2*v);
++  const rgbHsl=(r,g,b)=>{const mx=Math.max(r,g,b),mn=Math.min(r,g,b),q=mx-mn,l=(mx+mn)/2;if(!q)return[0,0,l];const sat=l<.5?q/(mx+mn):q/(2-mx-mn);let hh=mx===r?(g-b)/q:mx===g?2+(b-r)/q:4+(r-g)/q;return[(hh<0?hh+6:hh)/6,sat,l]};
++  const hslRgb=(h,s,l)=>{if(!s)return[l,l,l];const q=l<.5?l*(1+s):l+s-l*s,pp=2*l-q,fn=t=>{t=(t+1)%1;return t<1/6?pp+(q-pp)*6*t:t<1/2?q:t<2/3?pp+(q-pp)*(2/3-t)*6:pp};return[fn(h+1/3),fn(h),fn(h-1/3)]};
++  const b=a.brightness/100,co=a.contrast/100,sa=a.saturation/100,hu=a.hue/360,te=a.temperature/100,hi=a.highlights/100,sh=a.shadows/100,wh=a.whites/100,bl=a.blacks/100;
++  for(let y=0;y<ih;y++)for(let x=0;x<iw;x++){
++    const j=(y*iw+x)*4,al=p[j+3];if(!al)continue;
++    let r=p[j]/255,gc=p[j+1]/255,bv=p[j+2]/255;
++    const orig=[r,gc,bv],L=.2126*r+.7152*gc+.0722*bv;
++    let v=L+b*.22;
++    v+=wh*.20*Math.pow(v,3)+bl*.20*Math.pow(1-v,3);
++    v+=hi*.18*ss(clamp01((v-.5)/.5))+sh*.18*(1-ss(clamp01(v/.5)));
++    v=.5+(v-.5)*(1+co);
++    const oldL=Math.max(.0001,L),scale=clamp01(v)/oldL;
++    r=clamp01(r*scale);gc=clamp01(gc*scale);bv=clamp01(bv*scale);
++    const hsl=rgbHsl(r,gc,bv);hsl[0]=(hsl[0]+hu+1)%1;hsl[1]=clamp01(hsl[1]*(1+sa));[r,gc,bv]=hslRgb(hsl[0],hsl[1],hsl[2]);
++    r=clamp01(r+te*.10);gc=clamp01(gc+te*.025);bv=clamp01(bv-te*.10);
++    let mix=1;if(MK){const mx=Math.floor(x/iw*MR),my=Math.floor(y/ih*MR);mix=MK[my*MR+mx]}
++    p[j]=Math.round((orig[0]*(1-mix)+r*mix)*255);p[j+1]=Math.round((orig[1]*(1-mix)+gc*mix)*255);p[j+2]=Math.round((orig[2]*(1-mix)+bv*mix)*255);
++  }
++  txPass(p,iw,ih,ensureLF(l),adjMask(l,a,'lfm'));
++  g.putImageData(d,0,0);l._adjC=c;l._adjRef=im;l._adjDirty=false;return c;
++}
++function adjMask(l,a,key){
++  const k=key==='lfm'?'lf':'adj';if(!rngOn(l,k))return null;const c=l[key];if(!c)return new Float32Array(MR*MR);const R=c.getContext('2d').getImageData(0,0,MR,MR).data,mk=new Float32Array(MR*MR);
++  for(let i=0;i<mk.length;i++)mk[i]=R[i*4+3]/255;
++  const fe=(a.feather||0)/100;return fe>.001?boxBlur(mk,MR,MR,fe*MR*.06):mk;
++}
++function boxBlur(src,w,h,r){
++  r=Math.max(1,Math.round(r));const t=new Float32Array(w*h),o=new Float32Array(w*h),n=2*r+1;let a=src;
++  for(let it=0;it<2;it++){
++    for(let y=0;y<h;y++){const rw=y*w;let s=0;for(let x=-r;x<=r;x++)s+=a[rw+Math.min(w-1,Math.max(0,x))];
++      for(let x=0;x<w;x++){t[rw+x]=s/n;s+=a[rw+Math.min(w-1,x+r+1)]-a[rw+Math.max(0,x-r)]}}
++    for(let x=0;x<w;x++){let s=0;for(let y=-r;y<=r;y++)s+=t[Math.min(h-1,Math.max(0,y))*w+x];
++      for(let y=0;y<h;y++){o[y*w+x]=s/n;s+=t[Math.min(h-1,y+r+1)*w+x]-t[Math.max(0,y-r)*w+x]}}
++    a=o;
++  }
++  return o;
++}
++function txPass(p,iw,ih,f,MK){
++  const on=LFK.filter(k=>Math.abs(f[k].amount)>.0001),N=iw*ih;if(!on.length||N>12e6)return;
++  const Lc=new Float32Array(N),dl=new Float32Array(N);let mean=0,cnt=0,am=0;
++  for(let i=0;i<N;i++){const j=i*4;Lc[i]=(.2126*p[j]+.7152*p[j+1]+.0722*p[j+2])/255;if(p[j+3]){mean+=Lc[i];cnt++}}
++  mean=cnt?mean/cnt:.5;
++  const cl=v=>v<0?0:v>1?1:v,ss=v=>v*v*(3-2*v),u=Math.max(1,Math.min(iw,ih)/400);
++  const CFG={sharp:[.5,1.2,0],texture:[1.2,1.5,0],structure:[3.5,1,.5],clarity:[8,1,1],ambience:[30,.9,1]};
++  on.forEach(key=>{
++    const v=f[key],[rr,gn,mw]=CFG[key],kk=.25+v.scale/100*1.75,loc=v.locality/100,ed=v.edge/100,bal=v.balance/100,so=v.softness/100,g=v.amount/100*gn,B=boxBlur(Lc,iw,ih,rr*u*kk),cg=.004+so*.03;
++    if(key==='ambience')am+=v.amount/100*.35;
++    for(let i=0;i<N;i++){
++      const L=Lc[i];let D=L-(B[i]*loc+mean*(1-loc));const a=Math.abs(D);
++      D*=1/Math.sqrt(1+(a/.25)*(a/.25));D*=ss(cl(a/cg));D*=(1-ed)+ed*ss(cl(a/.12));
++      dl[i]+=g*D*Math.max(0,1+bal*(2*L-1))*(1-mw*.7*Math.pow(Math.abs(2*L-1),2));
++    }
++  });
++  for(let i=0;i<N;i++){
++    const j=i*4;if(!p[j+3])continue;let m=1;
++    if(MK){const x=i%iw,y=(i/iw)|0;m=MK[Math.floor(y/ih*MR)*MR+Math.floor(x/iw*MR)]}
++    if(m<=0)continue;const d=dl[i]*m;
++    let r=p[j]/255+d,gg=p[j+1]/255+d,b=p[j+2]/255+d;
++    if(am){const gr=.2126*r+.7152*gg+.0722*b,s=1+am*m*(.5+Lc[i]);r=gr+(r-gr)*s;gg=gr+(gg-gr)*s;b=gr+(b-gr)*s}
++    p[j]=Math.round(cl(r)*255);p[j+1]=Math.round(cl(gg)*255);p[j+2]=Math.round(cl(b)*255);
++  }
++}
++function adjDirty(l){l._adjDirty=true;l._adjC=null;l.dirty=true;l.wd=true}
++function adjUi(){
++  if(!sel)return;const a=ensureAdj(sel),map=[['adjBr','brightness','adjBrv'],['adjCo','contrast','adjCov'],['adjSa','saturation','adjSav'],['adjHu','hue','adjHuv'],['adjTe','temperature','adjTev'],['adjHi','highlights','adjHiv'],['adjSh','shadows','adjShv'],['adjWh','whites','adjWhv'],['adjBl','blacks','adjBlv'],['adjFe','feather','adjFev']];
++  map.forEach(([id,k,v])=>{$(id).value=a[k];$(v).textContent=k==='hue'?a[k]+'°':a[k]});
++  $('adjPaint').classList.toggle('on',adjMode==='paint');$('adjErase').classList.toggle('on',adjMode==='erase');$('adjShow').classList.toggle('on',adjShow);{const on=rngOn(sel,rk());$('adjScAll').classList.toggle('on',!on);$('adjScRng').classList.toggle('on',on);$('adjRngRow').style.display=$('adjBsRow').style.display=on?'':'none'}lfUi();
++}
++function rk(){return rngT==='fx'?'lf':'adj'}
++function rngOn(l,k){const v=l[k+'Rng'];return v===undefined?!!l[k+'m']:!!v}
++function setScope(on){if(!sel)return;const k=rk();if(sel[k+'Rng']!==undefined&&rngOn(sel,k)===on)return;pushUndo();sel[k+'Rng']=on;if(!on)adjMode='';adjDirty(sel);paintFrame();adjUi()}
++const RKS=()=>rngT==='fx'?['lfm','hasLFM','lfmv']:['adjm','hasAdjM','adjmv'];
++function adjBrushAt(q,l){
++  if(!l||!l.M)return;ensureAdj(l);l[rk()+'Rng']=true;const[m,h,vv]=RKS();if(!l[m])l[m]=nb();
++  const t=l.M.inverse().transformPoint(new DOMPoint(q.x*dpr,q.y*dpr)),S=S0*l.size,x=(t.x/S+.5)*MR,y=(t.y/S+.5)*MR,g=l[m].getContext('2d');
++  g.globalCompositeOperation=adjMode==='erase'?'destination-out':'source-over';g.globalAlpha=1;g.fillStyle='#fff';g.lineWidth=adjBrush*2;g.lineCap=g.lineJoin='round';
++  g.beginPath();g.moveTo(lp?lp.x:x,lp?lp.y:y);g.lineTo(x,y);g.stroke();lp={x,y};l[h]=true;l[vv]=(l[vv]||0)+1;adjDirty(l);
++}
++function adjAll(on){
++  if(!sel)return;pushUndo();sel[rk()+'Rng']=true;const[m,h,vv]=RKS();if(!sel[m])sel[m]=nb();const g=sel[m].getContext('2d');g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.globalAlpha=1;g.clearRect(0,0,MR,MR);if(on){g.fillStyle='#fff';g.fillRect(0,0,MR,MR);sel[h]=true}else sel[h]=false;sel[vv]=(sel[vv]||0)+1;adjDirty(sel);paintFrame();adjUi();
++}
++const LFN={clarity:'明瞭度：中〜大きめの局所コントラスト。面のメリハリ・存在感。',structure:'ストラクチャ：中程度の局所構造。立体感・奥行き。',texture:'テクスチャ：細かい表面構造。髪・布・木などの肌理。',sharp:'シャープ：輪郭の鮮鋭化。ノイズ抑制を上げるとザラつきにくい。',ambience:'アンビエンス：局所の明暗差に連動して彩度も動かし、雰囲気を変える。'};
++const LFR=[['fxAm','amount'],['fxSc','scale'],['fxLo','locality'],['fxEd','edge'],['fxBa','balance'],['fxSo','softness']];
++function lfUi(){
++  if(!sel)return;const v=ensureLF(sel)[lfSel];
++  LFR.forEach(([id,k])=>{$(id).value=v[k];$(id+'v').textContent=v[k]});
++  document.querySelectorAll('#fxEff [data-fx]').forEach(b=>b.classList.toggle('on',b.dataset.fx===lfSel));$('fxNote').textContent=LFN[lfSel];
++  const c=$('fxPad'),g=c.getContext('2d'),w=c.width,h=c.height;g.clearRect(0,0,w,h);g.strokeStyle='#888';g.lineWidth=1;g.strokeRect(.5,.5,w-1,h-1);
++  g.globalAlpha=.3;g.beginPath();g.moveTo(w/2,0);g.lineTo(w/2,h);g.moveTo(0,h/2);g.lineTo(w,h/2);g.stroke();g.globalAlpha=1;
++  g.fillStyle='#e0245e';g.beginPath();g.arc(v.scale/100*w,(1-v.locality/100)*h,7,0,7);g.fill();
++}
++function lfPadSet(e){if(!sel)return;const r=$('fxPad').getBoundingClientRect(),v=ensureLF(sel)[lfSel],c=x=>Math.max(0,Math.min(100,Math.round(x)));v.scale=c((e.clientX-r.left)/r.width*100);v.locality=c((1-(e.clientY-r.top)/r.height)*100);adjDirty(sel);lfUi();paintFrame()}
++function adjReset(){
++  if(!sel)return;pushUndo();{const a=ensureAdj(sel);COLK.forEach(k=>a[k]=0)}sel._adjDirty=true;sel._adjC=null;sel.adjmv=(sel.adjmv||0);adjDirty(sel);paintFrame();adjUi();
++}
+diff --git a/src/js/200-warp-ui.js b/src/js/200-warp-ui.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..574b8e117b8962e0ee18b78094a70dca9357faf4
+--- /dev/null
++++ b/src/js/200-warp-ui.js
+@@ -0,0 +1,35 @@
++/* ===== 歪み: 選択・一覧 ===== */
++function pickPin(q,l){
++  if(!l.M||!l.pins.length)return;const c=loc(l,q);let bi=-1,bd=1e9;
++  l.pins.forEach((p,i)=>{const d=Math.hypot(p.x-c.u,p.y-c.v);if(d<bd){bd=d;bi=i}});
++  l.ps=bi;const p=l.pins[bi];loadPin(p);wg={l,p,mv:true};renderPins();
++}
++function loadPin(p){WD.r=p.r;WD.a=p.a;WD.b=p.b;WD.hz=p.hz;WD.w=p.w;WD.ma=p.ma||0;WD.md=p.md||0;WD.mw=p.mw||'sin';WD.sf=p.sf===undefined?.5:p.sf;wt=p.t;wsync()}
++function renderPins(){
++  const box=$('pinl');box.innerHTML='';const l=sel;if(!l)return;
++  l.pins.forEach((p,i)=>{const b=document.createElement('button'),tn=p.t==='b'?(p.a<0?'凹み':'膨らみ'):p.t==='s'?'螺旋':'タッチ';
++    b.textContent=(i+1)+(p.t==='b'?(p.a<0?'🕳':'🫧'):p.t==='s'?'🌀':'👆');b.setAttribute('aria-label',(i+1)+'番目：'+tn);armTip(b);
++    b.classList.toggle('on',i===curIdx(l));b.onclick=()=>{l.ps=i;loadPin(p);renderPins()};box.appendChild(b)});
++  if(!l.pins.length){const n=document.createElement('span');n.className='note';n.style.margin=0;n.textContent='（まだ歪みがありません。オブジェクトをタップして追加）';box.appendChild(n)}
++  const sSel=$('wsyncSel');if(sSel){
++    sSel.innerHTML='<option value="">同期しない</option>'+AC.filter(a=>a!==l).map(o=>`<option value="${o.id}"${l.syncTo===o.id?' selected':''}>${o.name}</option>`).join('');
++    sSel.value=l.syncTo||'';
++  }
++}
++function setWarpSync(l,id){
++  if(id){const t=byId(id);if(!t)return;l.pins=t.pins;l.syncTo=id;l.ps=undefined}
++  else{l.pins=l.pins.slice();l.syncTo=null}
++  renderPins();
++}
++$('wsyncSel').onchange=e=>{setWarpSync(sel,+e.target.value||null)};
++const wmUi=()=>{$('wm1').classList.toggle('on',wmode==='add');$('wm2').classList.toggle('on',wmode==='pick')};
++$('physMode').onclick=()=>{setTab(document.querySelector('.tab[data-tab="ph"]').classList.contains('on')?'pl':'ph')};
++$('wm1').onclick=()=>{wmode='add';wmUi()};$('wm2').onclick=()=>{wmode='pick';wmUi()};
++$('wsh').onclick=()=>{showPins=!showPins;$('wsh').classList.toggle('on',showPins)};
++$('bnd').onclick=()=>{showBounds=!showBounds;$('bnd').classList.toggle('on',showBounds)};
++function clearEffects(l){
++  if(!l)return;pushUndo();
++  l.ch=mkc();l.pins=[];l.syncTo=null;l.rot=0;l.rr=0;l.blur=0;l.bm=null;l.hasBm=false;l.bmOn=false;l.wo=null;l.sd=null;l.dirty=true;l.wd=true;
++  setSel(l);note('エフェクトを全部消しました（画像はそのままです）');
++}
++$('clrfx').onclick=()=>clearEffects(sel);
+diff --git a/src/js/210-performance.js b/src/js/210-performance.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..cebf948ea11d570e431452f088d1fd91f3c85b49
+--- /dev/null
++++ b/src/js/210-performance.js
+@@ -0,0 +1,11 @@
++
++/* ===== 処理の軽さ(自動で段階を下げる) ===== */
++let pavg=16,pcool=120,lvl=0,wq='auto';
++const LV=[1,1,2],LVN=['高品質','標準','軽い'];
++function setLvl(n){lvl=n;wskip=LV[n];for(const a of AC){a.wo=null;a.sd=null;a.dirty=true;a._wr=undefined}$('qtx').textContent='現在：'+LVN[n]+(wq==='auto'?'（自動）':'')}
++function perfTick(ms){
++  if(wq!=='auto'||!wAct||ms>250||!AC.some(a=>a.pins.length))return;pavg=pavg*.94+ms*.06;if(--pcool>0)return;
++  if(pavg>38&&lvl<2){setLvl(lvl+1);pcool=150;pavg=16;note('動きのある歪みが多く、画質を少し下げました（「背景・出力」タブの「処理の軽さ」で固定できます）')}
++  else if(pavg<20&&lvl>0){setLvl(lvl-1);pcool=300;pavg=17}
++}
++$('qs').onchange=e=>{wq=e.target.value;if(wq!=='auto')setLvl(+wq);else $('qtx').textContent='現在：'+LVN[lvl]+'（自動）'};
+diff --git a/src/js/220-parts.js b/src/js/220-parts.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..6820ada5991067740c132dd85ac537421e1cc109
+--- /dev/null
++++ b/src/js/220-parts.js
+@@ -0,0 +1,62 @@
++
++/* ===== パーツのコピー／切り取り／貼り付け ===== */
++const CL=[];
++function boxCv(l){
++  const src=l.wo||l.img,iw=src.naturalWidth||src.width||1,ih=src.naturalHeight||src.height||1;
++  let W,H,dw,dh;
++  if(l.wo){W=H=Math.max(1024,Math.round(Math.max(iw,ih)));dw=WX*W;dh=WX*H}
++  else{const L=Math.min(1600,Math.max(512,Math.round(Math.max(iw,ih)))),k=L/Math.max(iw,ih);W=Math.max(1,Math.round(iw*k));H=Math.max(1,Math.round(ih*k));dw=W;dh=H}
++  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
++  const ox=(W-dw)/2,oy=(H-dh)/2;
++  if(l.hasBm&&l.blur>0&&l.bm&&FILT){
++    g.drawImage(src,ox,oy,dw,dh);
++    const bmc=document.createElement('canvas');bmc.width=W;bmc.height=H;bmc.getContext('2d').drawImage(l.bm,0,0,W,H);
++    const scale=dw/Math.max(1,S0*l.size),bc=document.createElement('canvas');bc.width=W;bc.height=H;const bg=bc.getContext('2d');
++    bg.filter='blur('+(l.blur*scale)+'px)';bg.drawImage(src,ox,oy,dw,dh);
++    g.globalCompositeOperation='destination-out';g.drawImage(bmc,0,0);g.globalCompositeOperation='source-over';
++    bg.globalCompositeOperation='destination-in';bg.drawImage(bmc,0,0);
++    g.drawImage(bc,0,0);
++  }else{g.drawImage(src,ox,oy,dw,dh)}
++  return{c,W,H};
++}
++function takePart(cut){
++  const l=sel;if(!l||!l.hasSm||!l.sm){note('先に「囲む」で、コピーしたい部分をなぞってください');return}
++  pushUndo();const{c,W,H}=boxCv(l),g=c.getContext('2d');g.globalCompositeOperation='destination-in';g.drawImage(l.sm,0,0,W,H);
++  const d=g.getImageData(0,0,W,H).data;let x0=W,y0=H,x1=0,y1=0;
++  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(d[(y*W+x)*4+3]>8){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
++  if(x1<=x0||y1<=y0){note('囲んだ範囲に絵がありません');return}
++  const w=x1-x0+1,h=y1-y0+1,p=document.createElement('canvas');p.width=w;p.height=h;p.getContext('2d').drawImage(c,x0,y0,w,h,0,0,w,h);
++  CL.unshift({c:p,W,H,size:l.size,src:l.name,sx:l.fx,sy:l.fy,ux:((x0+x1)/(2*W)-.5)*l.size,uy:((y0+y1)/(2*H)-.5)*l.size});if(CL.length>8)CL.pop();renderTray();
++  if(cut){
++    ensureBase(l);const bw=l._bw,bh=l._bh,bg=l.base.getContext('2d');bg.globalCompositeOperation='destination-out';bg.drawImage(l.sm,0,0,bw,bh);bg.globalCompositeOperation='source-over';
++    if(l.pen){const pgc=l.pen.getContext('2d');pgc.globalCompositeOperation='destination-out';pgc.drawImage(l.sm,0,0,bw,bh);pgc.globalCompositeOperation='source-over'}
++    bumpBP(l,1,!!l.pen);recompose(l);
++  }
++  note(cut?'切り取って、画面の左下に置きました':'コピーして、画面の左下に置きました（サムネイルをタップで貼り付け）');
++}
++function pasteClip(i){
++  const k=CL[i];if(!k||AC.length>=8)return;pushUndo();
++  const R2=Math.max(k.W||512,k.H||512),id=++uid,a={id,sp:'p',name:'パーツ'+id,img:k.c,fx:k.sx+k.ux*S0/W+.04,fy:k.sy+k.uy*S0/H+.04,size:Math.max(.04,k.size*Math.max(k.c.width,k.c.height)/R2),pv:0,face:1,rot:0,rr:0,ch:mkc(),to:null,att:false,maskTo:false,ox:.5,oy:.05,front:true,keep:0,eat:false,bite:nb(),mask:nb(),hasMask:false,wx:0,wy:0,pins:[],blur:0,bm:null,hasBm:false,bmOn:false};
++  AC.push(a);setSel(a);
++}
++function renderTray(){
++  const t=$('tray');t.innerHTML='';
++  CL.forEach((k,i)=>{const b=document.createElement('button'),im=document.createElement('img'),th=document.createElement('canvas'),S=64,r=Math.min(S/k.c.width,S/k.c.height);
++    th.width=th.height=S;th.getContext('2d').drawImage(k.c,(S-k.c.width*r)/2,(S-k.c.height*r)/2,k.c.width*r,k.c.height*r);
++    im.src=th.toDataURL();im.alt='';b.title='タップで貼り付け（'+k.src+'より）';b.setAttribute('aria-label','パーツを貼り付け');b.append(im);b.onclick=()=>pasteClip(i);t.appendChild(b)});
++}
++$('pcopy').onclick=()=>takePart(false);$('pcut').onclick=()=>takePart(true);$('pdup').onclick=()=>{fillSel('sm','#ff5d8f');takePart(false);pasteClip(0)};
++$('pexp').onclick=()=>{
++  const l=sel;if(!l)return;
++  const oldLvl=lvl;lvl=0;if(l.pins.length){l.wo=null;l.sd=null;l.wd=true;warpFrame(l)}lvl=oldLvl;
++  const{c,W,H}=boxCv(l),g=c.getContext('2d'),d=g.getImageData(0,0,W,H).data;
++  let x0=W,y0=H,x1=0,y1=0;
++  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(d[(y*W+x)*4+3]>4){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
++  if(x1<=x0||y1<=y0){note('保存できる絵がありません');return}
++  const w=x1-x0+1,h=y1-y0+1,p=document.createElement('canvas');p.width=w;p.height=h;p.getContext('2d').drawImage(c,x0,y0,w,h,0,0,w,h);
++  p.toBlob(b=>{if(b)showOut(URL.createObjectURL(b),'img','png')},'image/png');
++};
++$('pall').onclick=()=>fillSel('sm','#ff5d8f');
++$('pclr').onclick=()=>{if(sel.sm)sel.sm.getContext('2d').clearRect(0,0,MR,MR);sel.hasSm=false;sel.smv=(sel.smv||0)+1};
++$('pclrh').onclick=()=>{CL.length=0;renderTray()};
++$('pbs').oninput=e=>{brushParts=+e.target.value};
+diff --git a/src/js/230-color-picker.js b/src/js/230-color-picker.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..f5d2fa6d362358df38ec1708fa83c3ff1230a631
+--- /dev/null
++++ b/src/js/230-color-picker.js
+@@ -0,0 +1,10 @@
++/* ===== スポイト(画面の色を取る) ===== */
++let pickFor=null,picking=false;
++function setColor(id,hex){const el=$(id);el.value=hex;el.dispatchEvent(new Event('input',{bubbles:true}))}
++function pickAt(q){const d=mctx.getImageData(Math.round(q.x*dpr),Math.round(q.y*dpr),1,1).data;if(d[3]>0)setColor(pickFor,'#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join(''));pickFor=null;picking=false;$('hint').hidden=true}
++document.querySelectorAll('.pk').forEach(b=>b.onclick=async()=>{
++  const id=b.dataset.for;
++  if(window.EyeDropper){try{const r=await new EyeDropper().open();setColor(id,r.sRGBHex)}catch(_){}return}
++  pickFor=id;picking=true;note('キャンバスをタップすると、その場所の色を取ります');
++});
++addEventListener('keydown',e=>{if(e.key==='Escape'&&pickFor){pickFor=null;picking=false}});
+diff --git a/src/js/240-tooling-and-init.js b/src/js/240-tooling-and-init.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..ae1518507f03a764432632d8e949fbe2db29c562
+--- /dev/null
++++ b/src/js/240-tooling-and-init.js
+@@ -0,0 +1,64 @@
++let strokeActor=null;
++let tipEl=null;
++function hideTip(){if(tipEl){tipEl.remove();tipEl=null}}
++function showTip(el,text){
++  hideTip();tipEl=document.createElement('div');tipEl.className='ltip';tipEl.textContent=text;document.body.appendChild(tipEl);
++  const r=el.getBoundingClientRect();
++  tipEl.style.left=Math.min(innerWidth-tipEl.offsetWidth-8,Math.max(8,r.left+r.width/2-tipEl.offsetWidth/2))+'px';
++  tipEl.style.top=Math.max(8,r.top-tipEl.offsetHeight-8)+'px';
++}
++function armTip(el){
++  const text=el.getAttribute('aria-label');if(!text||el._tipped)return;el._tipped=1;el.title=text;
++  let t;
++  el.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')return;clearTimeout(t);t=setTimeout(()=>showTip(el,text),480)});
++  el.addEventListener('pointerup',()=>{clearTimeout(t);setTimeout(hideTip,900)});
++  el.addEventListener('pointercancel',()=>{clearTimeout(t);hideTip()});
++  el.addEventListener('pointermove',()=>clearTimeout(t));
++}
++function armTips(root){root.querySelectorAll('[aria-label]').forEach(armTip)}
++const HINT=$('ht').textContent;
++let lastPen='pen',lastMask='mouth',lastPart='psel';
++const seen={};let hto=null;
++function setTool(t){tool=t;paint=t==='mouth'||t==='mouthx';erase=t==='mouthx';bpn=t==='bpaint'||t==='bpaintx';berase=t==='bpaintx';pbox=t==='pbox';psn=t==='psel'||t==='pselx';serase=t==='pselx';
++  if(t==='pen'||t==='eraser'||t==='ieraser')lastPen=t;if(paint||bpn)lastMask=t;if(psn||pbox)lastPart=t;
++  const on=new Set([lastPen,lastMask,lastPart,t]);document.querySelectorAll('#tp [data-tool]').forEach(b=>b.classList.toggle('on',on.has(b.dataset.tool)));
++  $('ht').textContent=HT[t]||HINT;
++  $('es2').style.display=(t==='eraser'||t==='ieraser')?'':'none';
++  const pcolEl=$('pcol'),pcolPk=document.querySelector('.pk[data-for="pcol"]');
++  if(pcolEl)pcolEl.style.display=t==='pen'?'':'none';
++  if(pcolPk)pcolPk.style.display=t==='pen'?'':'none';
++  if(t!=='move'&&!seen[t]){seen[t]=1;$('hint').hidden=false;clearTimeout(hto);hto=setTimeout(()=>{$('hint').hidden=true},4500)}}
++const TT={adj:()=>'move',fx:()=>'move',pt:()=>lastPart,pl:()=>'move',mo:()=>'move',bg:()=>'move',ph:()=>'move',wp:()=>'warp',dr:()=>lastPen,mk:()=>lastMask};
++function setTab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.tab===t));document.querySelectorAll('#tabs [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.getElementById('tabs').style.display=t==='ph'?'none':'flex';$('physMode').textContent=t==='ph'?'🎬 アニメーションに戻る':'⚙️ 物理モードに切り替え';if(t==='bg'){const b=document.querySelector('#tabs [data-t="bg"]');if(b)b.classList.remove('flag')}adjMode='';if(t==='adj'||t==='fx'){rngT=t;const T=document.querySelector('.tab[data-tab="'+t+'"]');T.insertBefore($('adjRange'),T.firstChild)}adjUi();setTool(TT[t]())}
++document.querySelectorAll('#tp [data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
++$('tc').onclick=()=>{const c=document.body.classList.toggle('tpc');$('tc').textContent=c?'▴':'▾'};
++$('gd').onclick=()=>{guide=!guide;$('gd').classList.toggle('on',guide)};
++$('gs').oninput=e=>{gs=+e.target.value};
++$('pl').onclick=()=>{paused=!paused;$('pl').textContent=paused?'▶ うごかす':'⏸ とめる';$('pl').classList.toggle('on',paused);$('pz').textContent=paused?'▶':'⏸'};
++$('pz').onclick=()=>$('pl').click();
++$('f').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader(),l=sel;r.onload=()=>{const im=new Image();im.onload=()=>{setImg(l,im);chips()};im.src=r.result};r.readAsDataURL(f)};
++
++function fsSet(on){
++  document.body.classList.toggle('fs',on);$('fsb').textContent=on?'✕ 縮小':'⛶ 拡大';
++  try{const d=document.documentElement;if(on){d.requestFullscreen&&d.requestFullscreen().catch(()=>{})}else if(document.fullscreenElement)document.exitFullscreen()}catch(_){}
++  up();if(!vLock){Z.s=1;Z.x=0;Z.y=0}fit();frame(sel);
++}
++$('fsb').onclick=()=>fsSet(!document.body.classList.contains('fs'));
++(function(){
++  const g=$('grip');let sy=0,sh=0,on=false;
++  g.addEventListener('pointerdown',e=>{on=true;sy=e.clientY;sh=$('tp').getBoundingClientRect().height;try{g.setPointerCapture(e.pointerId)}catch(_){}});
++  g.addEventListener('pointermove',e=>{if(!on)return;const h=cl(sh-(e.clientY-sy),120,innerHeight*.86);document.documentElement.style.setProperty('--tph',h+'px')});
++  g.addEventListener('dblclick',()=>document.documentElement.style.removeProperty('--tph'));
++  const stop=()=>{on=false};g.addEventListener('pointerup',stop);g.addEventListener('pointercancel',stop);
++})();
++addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('fs'))fsSet(false)});
++document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.classList.contains('fs'))fsSet(false)});
++if(window.ResizeObserver)new ResizeObserver(()=>fit()).observe($('wrap'));
++addEventListener('resize',fit);
++
++fit();add();add();setSel(AC[0]);setTab('pl');initExtra();armTips(document);rulerTxUpdate();
++requestAnimationFrame(t=>{last=t;loop(t)});
++
++/* ロック中レイヤーの編集ボタンを止める（B-2） */
++['pcut','pcopy','pdup','wbake','bbake','bfill','wc','wu'].forEach(id=>{const b=$(id),f=b&&b.onclick;if(f)b.onclick=function(...a){if(blocked(sel))return;return f.apply(this,a)}});
++layUi();
+diff --git a/src/js/30-actors-and-drawing.js b/src/js/30-actors-and-drawing.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..2f91332a0b681b712d0e19b26d4ecd65e531530c
+--- /dev/null
++++ b/src/js/30-actors-and-drawing.js
+@@ -0,0 +1,79 @@
++function setImg(l,im){l.img=im;l.cv=null;l.base=null;l.pen=null;l.sd=null;adjDirty(l);if(l.bite)l.bite=nb()}
++function txtCv(t,col){const f='bold 96px sans-serif',m=document.createElement('canvas').getContext('2d');m.font=f;
++  const c=document.createElement('canvas');c.width=Math.ceil(m.measureText(t||' ').width)+40;c.height=140;const g=c.getContext('2d');
++  g.font=f;g.textBaseline='middle';g.lineJoin='round';g.lineWidth=14;g.strokeStyle='#fff';g.strokeText(t,20,72);g.fillStyle=col;g.fillText(t,20,72);return c}
++function addSpecial(k){
++  if(AC.length>=8)return;
++  const id=++uid,c=document.createElement('canvas'),t=k==='t';
++  const a={id,sp:k,name:(t?'文字':'描画')+id,img:c,fx:.5,fy:t?.25:.5,size:t?1.6:3.2,pv:0,face:1,rot:0,rr:0,ch:mkc(),to:null,att:false,maskTo:false,ox:.5,oy:.05,front:true,keep:0,eat:false,bite:nb(),mask:nb(),hasMask:false,wx:0,wy:0,pins:[],blur:0,bm:null,hasBm:false,bmOn:false,adj:null,adjm:null,hasAdjM:false};
++  if(t){a.txt=$('tx').value||'こんにちは';a.tcol=$('tcl').value;a.img=txtCv(a.txt,a.tcol)}else{c.width=c.height=512;a.cv=c}
++  AC.push(a);setSel(a);return a;
++}
++function attach(l){if(l.toType==='layer')return;const c=byId(l.to);if(!c)return;const u=S0*c.size;l.ox=(l.fx*W-c.fx*W)/u*c.face;l.oy=(l.fy*H-c.fy*H)/u;l.att=true}
++function detach(l){const c=byId(l.to);if(c){const u=S0*c.size;l.fx=(c.fx*W+l.ox*u*c.face)/W;l.fy=(c.fy*H+l.oy*u)/H}l.att=false}
++function del(){
++  if(AC.length<2||!sel)return;if(blocked(sel))return;const a=sel;
++  AC.forEach(x=>{if(x.to===a.id&&x.toType!=='layer'){if(x.att){x.fx=x.wx/W;x.fy=x.wy/H}x.att=false;x.to=null;x.maskTo=false}if(x.syncTo===a.id){x.pins=x.pins.slice();x.syncTo=null}});
++  AC=AC.filter(x=>x!==a);setSel(AC[0]);
++}
++
++const mot=l=>{const r={x:0,y:0,r:0,s:0},f=editing||tool!=='move';
++  for(const[k]of K){const c=l.ch[k];if(f||!c.a)continue;const w=WV[c.w](c.ph),v=c.a*(c.e?(w+1)/2:w);
++    if(k==='m'&&(c.w==='circle'||c.w==='eight')){const t=6.2832*c.ph;r.x=c.a*Math.cos(t);r.y=-c.a*(c.w==='circle'?Math.sin(t):Math.sin(2*t)*.6)}
++    else if(k==='m'){const d=c.d*Math.PI/180;r.x=v*Math.cos(d);r.y=-v*Math.sin(d)}else r[k]=v}
++  return r};
++
++function fit(){const fs=document.body.classList.contains('fs'),r=$('wrap').getBoundingClientRect();dpr=hk||Math.min(devicePixelRatio||1,2);W=Math.max(1,Math.round(r.width));H=fs?Math.max(1,Math.round(r.height)):W;cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';oc.width=cv.width;oc.height=cv.height;ob1.width=ob2.width=cv.width;ob1.height=ob2.height=cv.height;S0=Math.min(W,H)*.26}
++
++const FILT='filter' in CanvasRenderingContext2D.prototype;
++function img(l,S,b){
++  if(b===undefined){if(l.hasBm&&l.blur>0&&l.bm&&!cmp)return blurRegion(l,S);b=0}
++  const im=l.wo||adjSource(l);let dw,dh;
++  if(l.wo){dw=dh=S*WX}else{const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,k=Math.min(S/iw,S/ih);dw=iw*k;dh=ih*k}
++  if(b>0&&FILT){ctx.save();ctx.filter='blur('+b+'px)';ctx.drawImage(im,-dw/2,-dh/2,dw,dh);ctx.restore()}
++  else if(b>0){ctx.save();for(let i=0;i<9;i++){const a=i*.7854,r=i?b:0;ctx.globalAlpha=1/(i+1);ctx.drawImage(im,-dw/2+Math.cos(a)*r,-dh/2+Math.sin(a)*r,dw,dh)}ctx.restore()}
++  else ctx.drawImage(im,-dw/2,-dh/2,dw,dh);
++}
++function boundsOf(l,S){
++  if(l.wo)return{w:S*WX,h:S*WX};
++  const im=l.img,iw=im.naturalWidth||im.width||S,ih=im.naturalHeight||im.height||S,k=Math.min(S/iw,S/ih);
++  return{w:iw*k,h:ih*k};
++}
++function drawBounds(l,S){
++  const bd=boundsOf(l,S);ctx.save();ctx.strokeStyle=l===sel?'#ff2d87':'#00c3ff';ctx.globalAlpha=.6;ctx.lineWidth=1;ctx.strokeRect(-bd.w/2,-bd.h/2,bd.w,bd.h);ctx.restore();
++}
++function drawRotGuide(l,x,y,S,P){
++  const c=l.ch.r,a=c.a,s0=c.e?0:-Math.abs(a),s1=c.e?a:Math.abs(a),base=l.rot,R=S*.62,cx=x,cy=y+P,rad=d=>(d-90)*Math.PI/180;
++  ctx.save();ctx.strokeStyle=ctx.fillStyle='#ff5d8f';ctx.lineWidth=2;ctx.setLineDash([6,5]);
++  ctx.beginPath();if(Math.abs(s1-s0)>=360)ctx.arc(cx,cy,R,0,6.283);else ctx.arc(cx,cy,R,rad(base+Math.min(s0,s1)),rad(base+Math.max(s0,s1)));ctx.stroke();ctx.setLineDash([]);
++  for(const q of[s0,s1]){const t=rad(base+q);ctx.beginPath();ctx.arc(cx+Math.cos(t)*R,cy+Math.sin(t)*R,4,0,6.283);ctx.fill()}
++  ctx.globalAlpha=.6;ctx.beginPath();ctx.arc(cx,cy,5,0,6.283);ctx.stroke();ctx.restore();
++}
++function drawGuide(c,x,y){
++  const d=c.d*Math.PI/180,ux=Math.cos(d)*S0,uy=-Math.sin(d)*S0,a=c.a,s=c.e?0:-a;
++  ctx.save();ctx.strokeStyle=ctx.fillStyle='#ff5d8f';ctx.lineWidth=2;ctx.setLineDash([6,5]);
++  ctx.beginPath();ctx.moveTo(x+s*ux,y+s*uy);ctx.lineTo(x+a*ux,y+a*uy);ctx.stroke();ctx.setLineDash([]);
++  for(const q of[s,a]){ctx.beginPath();ctx.arc(x+q*ux,y+q*uy,4,0,6.283);ctx.fill()}
++  ctx.globalAlpha=.6;ctx.beginPath();ctx.arc(x,y,8,0,6.283);ctx.stroke();ctx.restore();
++}
++function draw(l,x,y,m,kids){
++  const S=S0*l.size,P=l.pv*S,Pr=(l.rr||0)*S;
++  ctx.save();
++  const fg=guide||performance.now()<flashUntil;
++  if(fg&&!picking&&l===sel&&l.ch.m.a)drawGuide(l.ch.m,x,y);
++  if(fg&&!picking&&l===sel&&l.ch.r.a)drawRotGuide(l,x,y,S,Pr);
++  ctx.translate(x+m.x*S0,y+m.y*S0);ctx.translate(0,Pr);ctx.rotate((m.r+l.rot)*Math.PI/180);ctx.translate(0,-Pr);
++  const t=ctx.getTransform();l.wx=(t.e/dpr-Z.x)/Z.s;l.wy=(t.f/dpr-Z.y)/Z.s;l.F=t;
++  const sc=()=>{ctx.translate(0,P);ctx.scale((l.face||1)*(1-m.s*.8),1+m.s);ctx.translate(0,-P)};
++  ctx.save();sc();l.M=ctx.getTransform();ctx.restore();
++  const self=()=>{if(!isVisible(l))return;ctx.save();sc();
++    const tcs=l.maskTo?(l.toType==='layer'?AC.filter(x=>x!==l&&x.layerId===l.to):[byId(l.to)]):[],tl=tcs.filter(t=>t&&t.hasMask&&t.M);
++    if(tl.length)maskedImg(l,S,tl);else img(l,S);
++    if(showBounds)drawBounds(l,S);
++    if(paint&&l===pc()){ctx.globalAlpha=.55;ctx.drawImage(l.mask,-S/2,-S/2,S,S)}
++    if(adjShow&&l===sel&&(rngT==='fx'?l.hasLFM&&l.lfm:l.hasAdjM&&l.adjm)){ctx.save();ctx.globalAlpha=.22;ctx.drawImage(rngT==='fx'?l.lfm:l.adjm,-S/2,-S/2,S,S);ctx.restore()}
++    if(l===sel){if(l.hasBm&&l.bm&&(bpn||showBm))ovl(l,S,'bm','bmv','#3b82f6');if((psn||pbox)&&l.hasSm&&l.sm)ovl(l,S,'sm','smv','#ff5d8f');if(pbox&&drawing&&boxStart&&boxEnd){ctx.save();ctx.globalAlpha=.8;ctx.strokeStyle='#ff5d8f';ctx.lineWidth=2;ctx.setLineDash([6,4]);const x=Math.min(boxStart.u,boxEnd.u)*S-.5*S,y=Math.min(boxStart.v,boxEnd.v)*S-.5*S,w=Math.abs(boxEnd.u-boxStart.u)*S,h=Math.abs(boxEnd.v-boxStart.v)*S;ctx.strokeRect(x,y,w,h);ctx.restore()}if(tool==='warp'&&(showPins||wg||performance.now()<flashUntil))drawPins(l,S)}
++    ctx.restore()};
++  kids?kids(self):self();
++  ctx.restore();
++}
+diff --git a/src/js/40-masks.js b/src/js/40-masks.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..38be908c8374b2879ada40c7f711d33ba9812cb4
+--- /dev/null
++++ b/src/js/40-masks.js
+@@ -0,0 +1,49 @@
++
++/* マスク: 各オブジェクトが自分の座標系で持つ領域。対象に選ばれたオブジェクトのうち、そこに入った部分を消す／薄くする */
++function maskedImg(l,S,Cs){
++  Cs=[].concat(Cs);const cur=ctx.getTransform(),main=ctx,use=l.eat&&!paint;
++  octx.setTransform(1,0,0,1,0,0);octx.clearRect(0,0,oc.width,oc.height);
++  octx.setTransform(cur);ctx=octx;img(l,S);ctx=main;
++  octx.globalCompositeOperation='destination-out';octx.globalAlpha=1-l.keep;
++  if(use){
++    if(!editing){const bt=l.bite.getContext('2d');
++      for(const C of Cs){const Sc=S0*C.size;
++        bt.setTransform(new DOMMatrix().scale(MR/S).translate(S/2,S/2).multiply(cur.inverse()).multiply(C.M).translate(-Sc/2,-Sc/2).scale(Sc/MR));
++        bt.drawImage(C.mask,0,0)}}
++    octx.setTransform(cur);octx.drawImage(l.bite,-S/2,-S/2,S,S);
++  }else for(const C of Cs){const Sc=S0*C.size;octx.setTransform(C.M);octx.drawImage(C.mask,-Sc/2,-Sc/2,Sc,Sc)}
++  octx.globalCompositeOperation='source-over';octx.globalAlpha=1;
++  main.save();main.setTransform(1,0,0,1,0,0);main.drawImage(oc,0,0);main.restore();
++}
++function stroke(q){
++  const C=pc();if(!C||!C.M)return;
++  const t=C.M.inverse().transformPoint(new DOMPoint(q.x*dpr,q.y*dpr)),Sc=S0*C.size,x=(t.x/Sc+.5)*MR,y=(t.y/Sc+.5)*MR,g=C.mask.getContext('2d');
++  g.globalCompositeOperation=erase?'destination-out':'source-over';g.strokeStyle='#ff3b7a';g.lineWidth=brushMask*2;g.lineCap='round';
++  g.beginPath();g.moveTo(lp?lp.x:x,lp?lp.y:y);g.lineTo(x,y);g.stroke();lp={x,y};C.hasMask=true;C.mkv=(C.mkv||0)+1;
++}
++
++function paintFrame(){
++  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);
++  drawBG();const _wt0=performance.now();wAct=false;warpMs=0;for(const l of AC){if(l.layerId==null||!LAYERS.some(y=>y.id===l.layerId))l.layerId=curLid;const e=l.wd||l.dirty||(l.pins.length&&!l.wo),t0=performance.now();warpFrame(l);if(!e)warpMs+=performance.now()-t0}
++  ctx.setTransform(dpr*Z.s,0,0,dpr*Z.s,dpr*Z.x,dpr*Z.y);
++  const P=(l,f)=>draw(l,l.fx*W,l.fy*H,mot(l),f);
++  const objD=c=>o=>{ctx.save();ctx.translate(o.ox*S0*c.size*c.face,o.oy*S0*c.size);draw(o,0,0,mot(o));ctx.restore()};
++  const roots=AC.filter(r=>!(r.att&&byId(r.to))).sort((a,b)=>layIdx(a)-layIdx(b));
++  roots.forEach(r=>{
++    const ks=AC.filter(o=>o.att&&o.to===r.id),d=objD(r);
++    P(r,ks.length?self=>{ks.filter(o=>!o.front).forEach(d);self();ks.filter(o=>o.front).forEach(d)}:undefined)});
++  if(tgt&&!(tgt.att&&byId(tgt.to)))drawRangeBox();
++  if(rulerPt){
++    ctx.save();ctx.setTransform(dpr*Z.s,0,0,dpr*Z.s,dpr*Z.x,dpr*Z.y);
++    ctx.strokeStyle='#ffb020';ctx.lineWidth=3/Z.s;ctx.lineCap='round';
++    ctx.beginPath();ctx.moveTo(rulerPt.x0,rulerPt.y0);ctx.lineTo(rulerPt.x1,rulerPt.y1);ctx.stroke();
++    for(const[x,y]of[[rulerPt.x0,rulerPt.y0],[rulerPt.x1,rulerPt.y1]]){ctx.beginPath();ctx.arc(x,y,5/Z.s,0,6.283);ctx.fillStyle='#ffb020';ctx.fill()}
++    ctx.restore();
++  }
++}
++function drawRangeBox(){
++  ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
++  const x0=-.25*W*Z.s+Z.x,y0=-.25*H*Z.s+Z.y,x1=1.25*W*Z.s+Z.x,y1=1.25*H*Z.s+Z.y;
++  ctx.strokeStyle='#ff5d8f';ctx.globalAlpha=.55;ctx.lineWidth=2;ctx.setLineDash([8,6]);
++  ctx.strokeRect(x0,y0,x1-x0,y1-y0);ctx.restore();
++}
+diff --git a/src/js/50-physics.js b/src/js/50-physics.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..f538785b84b05f02ed8e059cd4f825876785d0aa
+--- /dev/null
++++ b/src/js/50-physics.js
+@@ -0,0 +1,61 @@
++/* ===== 物理モード: 重力・質量・反発・簡易の当たり判定。既存の動き/歪みとは独立 ===== */
++let physOn=false,physG=1,physGDir=90,physFloor=true,physWall=true,physCollide=true,physTimeScale=1,pxPerM=100,rulerOn=false,rulerPt=null,pendingRulerPx=0;
++function ensurePhys(l){return l.phys||(l.phys={on:false,m:1,e:.55,vx:0,vy:0,fixed:false,rs:.8})}
++function physStep(dt){
++  if(!physOn||paused||dt<=0)return;
++  const G=physG*9.8*pxPerM,ga=physGDir*Math.PI/180,gx=Math.cos(ga)*G,gy=Math.sin(ga)*G;
++  for(const l of AC){
++    const p=l.phys;if(!p||!p.on||p.fixed||l===tgt||(physHideEx&&!isVisible(l)))continue;
++    p.vx+=gx*dt;p.vy+=gy*dt;p.vx*=.999;p.vy*=.999;
++    let nx=l.fx*W+p.vx*dt,ny=l.fy*H+p.vy*dt;
++    const r=S0*l.size*.5*(p.rs===undefined?.8:p.rs);
++    if(physFloor&&ny+r>H){ny=H-r;if(p.vy>0)p.vy=-p.vy*p.e;p.vx*=.9}
++    if(ny-r<0){ny=r;if(p.vy<0)p.vy=-p.vy*p.e}
++    if(physWall){if(nx-r<0){nx=r;if(p.vx<0)p.vx=-p.vx*p.e}if(nx+r>W){nx=W-r;if(p.vx>0)p.vx=-p.vx*p.e}}
++    l.fx=nx/W;l.fy=ny/H;
++  }
++  if(physCollide)for(let i=0;i<AC.length;i++)for(let j=i+1;j<AC.length;j++){
++    const a=AC[i],b=AC[j];if(!a.phys?.on||!b.phys?.on||a===tgt||b===tgt||(physHideEx&&(!isVisible(a)||!isVisible(b))))continue;
++    if(a.phys.fixed&&b.phys.fixed)continue;
++    const ax=a.fx*W,ay=a.fy*H,bx=b.fx*W,by=b.fy*H,ar=S0*a.size*.5*(a.phys.rs===undefined?.8:a.phys.rs),br=S0*b.size*.5*(b.phys.rs===undefined?.8:b.phys.rs),dx=bx-ax,dy=by-ay,d=Math.hypot(dx,dy)||.01,min=ar+br;
++    if(d>=min)continue;
++    const nx=dx/d,ny=dy/d,ov=min-d,ma=a.phys.fixed?1e9:a.phys.m,mb=b.phys.fixed?1e9:b.phys.m,tot=ma+mb;
++    if(!a.phys.fixed){a.fx-=nx*ov*(mb/tot)/W;a.fy-=ny*ov*(mb/tot)/H}
++    if(!b.phys.fixed){b.fx+=nx*ov*(ma/tot)/W;b.fy+=ny*ov*(ma/tot)/H}
++    const rvx=b.phys.vx-a.phys.vx,rvy=b.phys.vy-a.phys.vy,rel=rvx*nx+rvy*ny;
++    if(rel<0){const e=Math.min(a.phys.e,b.phys.e),jimp=-(1+e)*rel/(1/ma+1/mb);
++      if(!a.phys.fixed){a.phys.vx-=jimp/ma*nx;a.phys.vy-=jimp/ma*ny}
++      if(!b.phys.fixed){b.phys.vx+=jimp/mb*nx;b.phys.vy+=jimp/mb*ny}}
++  }
++}
++function physUi(){
++  const l=sel,p=l?ensurePhys(l):null;
++  $('pOn').classList.toggle('on',physOn);$('pFloor').classList.toggle('on',physFloor);$('pWall').classList.toggle('on',physWall);$('pCol').classList.toggle('on',physCollide);
++  $('pG').value=physG;$('pGd').value=physGDir;$('pT').value=physTimeScale;$('pTv').textContent='×'+physTimeScale.toFixed(2);
++  if(p){$('pSelOn').classList.toggle('on',p.on);$('pFix').classList.toggle('on',p.fixed);$('pM').value=p.m;$('pE').value=p.e;$('pR').value=p.rs===undefined?.8:p.rs}
++}
++$('pOn').onclick=()=>{physOn=!physOn;physUi()};
++$('pFloor').onclick=()=>{physFloor=!physFloor;physUi()};
++$('pWall').onclick=()=>{physWall=!physWall;physUi()};
++$('pCol').onclick=()=>{physCollide=!physCollide;physUi()};
++$('pG').oninput=e=>{physG=+e.target.value};
++$('pGd').oninput=e=>{physGDir=+e.target.value};
++$('pT').oninput=e=>{physTimeScale=+e.target.value;$('pTv').textContent='×'+physTimeScale.toFixed(2)};
++function rulerTxUpdate(){$('pRulerTx').textContent='現在：'+Math.round(pxPerM)+'px ＝ 1m'}
++$('pRuler').onclick=()=>{rulerOn=!rulerOn;$('pRuler').classList.toggle('on',rulerOn);if(!rulerOn){rulerPt=null;$('pRulerSet').style.display='none'}};
++$('pRulerOk').onclick=()=>{const m=+$('pRulerLen').value||1;pxPerM=pendingRulerPx/m;rulerTxUpdate();$('pRulerSet').style.display='none';rulerOn=false;$('pRuler').classList.remove('on')};
++$('pRulerCancel').onclick=()=>{$('pRulerSet').style.display='none';rulerPt=null};
++$('pSelOn').onclick=()=>{const p=ensurePhys(sel);p.on=!p.on;physUi()};
++$('pFix').onclick=()=>{const p=ensurePhys(sel);p.fixed=!p.fixed;physUi()};
++$('pM').oninput=e=>{ensurePhys(sel).m=+e.target.value};
++$('pE').oninput=e=>{ensurePhys(sel).e=+e.target.value};
++$('pR').oninput=e=>{ensurePhys(sel).rs=+e.target.value};
++$('pStop').onclick=()=>{const p=ensurePhys(sel);p.vx=0;p.vy=0};
++
++function loop(ts){
++  const raw=ts-last,dt=Math.min(raw/1000,.05);last=ts;perfTick(warpMs);if(++fc%12===0)syncNums();
++  if(!paused)for(const l of AC){for(const[k]of K){const c=l.ch[k];c.ph=(c.ph+dt*gs*c.hz)%1}for(const p of l.pins)p.ph=(p.ph+dt*gs*p.hz)%1}
++  physStep(dt*physTimeScale);paintFrame();
++  const zz=Z.s!==1||Z.x!==0||Z.y!==0;if(zz!==zshown){zshown=zz;$('zr').style.display=zz?'':'none'}
++  requestAnimationFrame(loop);
++}
+diff --git a/src/js/60-input-state.js b/src/js/60-input-state.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..937ffebd27c70dc9a52cbcacef44d75075fcab05
+--- /dev/null
++++ b/src/js/60-input-state.js
+@@ -0,0 +1,6 @@
++
++/* 入力: ドラッグ・2本指ズーム・空き地ドラッグで画面移動 */
++const sp=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}};
++const wp=q=>({x:(q.x-Z.x)/Z.s,y:(q.y-Z.y)/Z.s});
++const cap=e=>{try{cv.setPointerCapture(e.pointerId)}catch(_){}};
++const up=()=>{editing=false;tgt=null;drawing=false;lp=null;pan=null;pid=-1;wg=null;dragOff=null;boxStart=null;boxEnd=null};
+diff --git a/src/js/70-layers.js b/src/js/70-layers.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..c87dc1d2a331c1fa4eb434d8a0eb8b76a5d95cf1
+--- /dev/null
++++ b/src/js/70-layers.js
+@@ -0,0 +1,63 @@
++/* B-1〜B-4: レイヤー。表示/ロックの共通関門 */
++const LY=id=>LAYERS.find(y=>y.id===id)||LAYERS[0];
++const layOf=l=>LY(l.layerId),layIdx=l=>LAYERS.indexOf(layOf(l));
++function isVisible(l){if(!layOf(l).visible)return false;const p=l.att&&l.toType!=='layer'?byId(l.to):null;return p?isVisible(p):true}
++function isLocked(l){const y=layOf(l);return !y.visible||y.locked}
++function editable(l){return isVisible(l)&&!isLocked(l)}
++function blocked(l){if(!l||editable(l))return false;note(isVisible(l)?'このレイヤーはロック中です（配置の移動だけできます）':'このレイヤーは非表示です');return true}
++function moveLayTo(f,t){if(f===t||f<0||t<0||f>=LAYERS.length||t>=LAYERS.length)return;pushUndo();const[y]=LAYERS.splice(f,1);LAYERS.splice(t,0,y);dirtyProj=true;layUi()}
++function moveObj(a,d){pushUndo();
++  if(d.k==='l'){a.layerId=LAYERS[+d.i].id;AC.splice(AC.indexOf(a),1);AC.push(a)}
++  else{const t=byId(+d.id);if(!t||t===a)return;const up=AC.indexOf(a)<AC.indexOf(t)||layOf(a)!==layOf(t);a.layerId=layOf(t).id;AC.splice(AC.indexOf(a),1);AC.splice(AC.indexOf(t)+(up?1:0),0,a)}
++  dirtyProj=true;chips()}
++function lyPlace(){const b=$('lyopen');if(!b||lyPop.hidden)return;const r=b.getBoundingClientRect(),w=lyPop.offsetWidth,h=lyPop.offsetHeight;
++  let y=r.bottom+6;if(y+h>innerHeight-8)y=Math.max(8,r.top-h-6);lyPop.style.left=Math.min(Math.max(8,r.left),Math.max(8,innerWidth-w-8))+'px';lyPop.style.top=y+'px'}
++function lyToggle(open){lyPop.hidden=open===undefined?!lyPop.hidden:!open;if(!lyPop.hidden)layUi()}
++function treeDrag(r){let t=null,on=false,sy=0;
++  const go=()=>{on=true;r.classList.add('drag')};
++  r.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;sy=e.clientY;if(e.pointerType!=='mouse')t=setTimeout(go,350)});
++  r.addEventListener('pointermove',e=>{
++    if(!on){if(e.pointerType==='mouse'&&e.buttons&&Math.abs(e.clientY-sy)>5){go();try{r.setPointerCapture(e.pointerId)}catch(_){}}else if(t&&Math.abs(e.clientY-sy)>8){clearTimeout(t);t=null}
++      if(!on)return}
++    const rows=[...$('lyl').querySelectorAll('.trow')];rows.forEach(x=>x.classList.remove('ov'));
++    const o=rows.find(x=>{const b=x.getBoundingClientRect();return e.clientY>=b.top&&e.clientY<b.bottom});if(o&&o!==r)o.classList.add('ov');e.preventDefault()});
++  r.addEventListener('touchmove',e=>{if(on)e.preventDefault()},{passive:false});
++  const fin=()=>{clearTimeout(t);t=null;if(!on)return;on=false;r.classList.remove('drag');
++    const rows=[...$('lyl').querySelectorAll('.trow')],o=rows.find(x=>x.classList.contains('ov'));rows.forEach(x=>x.classList.remove('ov'));if(!o)return;
++    const d=o.dataset;
++    if(r.dataset.k==='l')moveLayTo(+r.dataset.i,d.k==='l'?+d.i:LAYERS.indexOf(layOf(byId(+d.id))));
++    else{const a=byId(+r.dataset.id);if(a)moveObj(a,d)}};
++  r.addEventListener('pointerup',fin);r.addEventListener('pointercancel',fin)}
++function layUi(){
++  const box=$('lyl');if(!box||lyPop.hidden)return;box.innerHTML='';
++  const mk=(t,al,f,on)=>{const b=document.createElement('button');b.textContent=t;b.setAttribute('aria-label',al);b.classList.toggle('on',!!on);b.onclick=e=>{e.stopPropagation();f()};return b};
++  const th=a=>{const im=document.createElement('img');im.alt='';im.src=thumbURL(a);return im};
++  for(let i=LAYERS.length-1;i>=0;i--){
++    const y=LAYERS[i],mem=AC.filter(a=>layOf(a)===y).reverse(),r=document.createElement('div');
++    r.className='trow l'+(y.id===curLid?' on':'')+(y.visible?'':' off');r.dataset.k='l';r.dataset.i=i;
++    const nm=document.createElement('span');nm.className='nm';nm.textContent=y.name+'（'+mem.length+'）';
++    r.append(mk(foldSet.has(y.id)?'▸':'▾','たたむ／ひらく',()=>{foldSet.has(y.id)?foldSet.delete(y.id):foldSet.add(y.id);layUi()}));
++    if(mem[0])r.append(th(mem[0]));else{const e=document.createElement('span');e.textContent='🗂';r.append(e)}
++    r.append(nm,
++      mk(y.visible?'👁':'🚫','表示／非表示',()=>{pushUndo();y.visible=!y.visible;dirtyProj=true;layUi()},y.visible),
++      mk(y.locked||!y.visible?'🔒':'🔓','ロック',()=>{if(!y.visible){note('非表示のレイヤーは常にロック扱いです');return}pushUndo();y.locked=!y.locked;dirtyProj=true;layUi()},y.locked||!y.visible),
++      mk('▲','手前へ',()=>moveLayTo(i,i+1)),mk('▼','奥へ',()=>moveLayTo(i,i-1)));
++    r.onclick=()=>{curLid=y.id;layUi()};treeDrag(r);box.appendChild(r);
++    if(!foldSet.has(y.id))mem.forEach((a,k)=>{
++      const o=document.createElement('div');o.className='trow o'+(a===sel?' on':'')+(isVisible(a)?'':' off');o.dataset.k='o';o.dataset.id=a.id;
++      const br=document.createElement('span');br.className='br';br.textContent=k===mem.length-1?'└':'├';
++      const n2=document.createElement('span');n2.className='nm';n2.textContent=a.name;
++      o.append(br,th(a),n2);o.onclick=()=>setSel(a);treeDrag(o);box.appendChild(o)})}
++  $('lyphx').checked=physHideEx;lyPlace();
++}
++$('lyadd').onclick=()=>{pushUndo();const id=Math.max(...LAYERS.map(y=>y.id))+1,i=LAYERS.findIndex(y=>y.id===curLid);LAYERS.splice(i+1,0,{id,name:'レイヤー'+id,visible:true,locked:false});curLid=id;dirtyProj=true;layUi()};
++$('lyren').onclick=()=>{const y=LY(curLid),v=prompt('レイヤー名',y.name);if(v&&v.trim()){pushUndo();y.name=v.trim();dirtyProj=true;chips()}};
++$('lydel').onclick=()=>{if(LAYERS.length<2){note('最後のレイヤーは削除できません');return}const i=LAYERS.findIndex(y=>y.id===curLid);if(i<0)return;pushUndo();const to=LAYERS[i?i-1:1];
++  AC.forEach(a=>{if(a.layerId===curLid)a.layerId=to.id;if(a.toType==='layer'&&a.to===curLid){a.to=null;a.toType='actor';a.maskTo=false}});
++  LAYERS.splice(i,1);curLid=to.id;dirtyProj=true;setSel(sel||AC[0])};
++$('oadd').onclick=()=>add();$('oadd2').onclick=()=>{addSpecial('d');setTab('dr')};$('odel').onclick=()=>del();
++$('lyphx').onchange=e=>{physHideEx=e.target.checked;dirtyProj=true};
++$('lyx').onclick=()=>lyToggle(false);
++addEventListener('keydown',e=>{if(e.key==='Escape'&&!lyPop.hidden)lyToggle(false)});
++addEventListener('resize',lyPlace);
++addEventListener('pointerdown',e=>{if(lyPop.hidden)return;const t=e.target;if(lyPop.contains(t)||t.closest('#lyopen')||t.id==='cv')return;lyToggle(false)},true);
+diff --git a/src/js/80-pointer-events.js b/src/js/80-pointer-events.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..fe7c398aa83c491a385bd28a785ad1686bcefe03
+--- /dev/null
++++ b/src/js/80-pointer-events.js
+@@ -0,0 +1,76 @@
++function hit(p){
++  if(sel&&isVisible(sel)){const ds=Math.hypot(p.x-sel.wx,p.y-sel.wy)/(S0*sel.size*.6);if(ds<1)return sel}
++  let b=null,bd=1;for(const a of AC){if(!isVisible(a))continue;const d=Math.hypot(p.x-a.wx,p.y-a.wy)/(S0*a.size*.6);if(d<bd){bd=d;b=a}}return b;
++}
++function mv(p){
++  const a=tgt,par=a.att&&byId(a.to);
++  if(par&&par.F){const q=par.F.inverse().transformPoint(new DOMPoint((p.x*Z.s+Z.x)*dpr,(p.y*Z.s+Z.y)*dpr)),u=S0*par.size;
++    a.ox=cl(q.x/u*par.face-(dragOff?dragOff.dx:0),-2.5,2.5);a.oy=cl(q.y/u-(dragOff?dragOff.dy:0),-2.5,2.5)}
++  else{a.fx=cl((p.x+(dragOff?dragOff.dx:0))/W,-.25,1.25);a.fy=cl((p.y+(dragOff?dragOff.dy:0))/H,-.25,1.25)}
++}
++cv.addEventListener('pointerdown',e=>{noFrame=true;try{pdown(e)}finally{noFrame=false}});
++function pdown(e){
++  cap(e);const q=sp(e);ptrs.set(e.pointerId,q);
++  if(ptrs.size===1)firstDownTs=performance.now();
++  if(ptrs.size>=2){
++    const quick=performance.now()-firstDownTs<300;
++    if((tgt||drawing||wg)&&!quick)return;
++    if(vLock)return;if(tgt&&tgtBak&&tgtBak.a===tgt&&quick){const b=tgtBak;tgt.fx=b.fx;tgt.fy=b.fy;tgt.ox=b.ox;tgt.oy=b.oy}up();const pts=[...ptrs.values()].slice(-2),[a,b]=pts;pz0={d:Math.hypot(a.x-b.x,a.y-b.y)||1,m:{x:(a.x+b.x)/2,y:(a.y+b.y)/2},Z:{...Z}};return
++  }
++  if(pickFor){pickAt(q);return}
++  if(handMode){if(!vLock){pid=e.pointerId;pan={x:q.x-Z.x,y:q.y-Z.y}}return}
++  pushUndo();pid=e.pointerId;const p=wp(q);
++  if(rulerOn){drawing=true;rulerPt={x0:p.x,y0:p.y,x1:p.x,y1:p.y};return}
++  if(paint){if(blocked(sel))return;drawing=true;lp=null;stroke(q);return}
++  if(adjMode){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;adjBrushAt(q,pl);return}
++  if(pbox){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;boxStart=loc(pl,q);boxEnd={...boxStart};return}
++  if(bpn||psn){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;strokeSel(q);return}
++  if(tool==='pen'||tool==='eraser'||tool==='ieraser'){pl=hit(p)||sel;if(blocked(pl))return;if(pl!==sel)setSel(pl);drawing=true;lp=null;strokeActor=pl;penAt(q,pl);return}
++  if(tool==='warp'){const l=hit(p)||sel;if(blocked(l))return;if(l!==sel)setSel(l);if(wmode==='pick')pickPin(q,l);else startWarp(q,l);return}
++  const h=hit(p);
++  if(h){
++    tgt=h;editing=true;setSel(h);dragOff=null;thist=[];tgtBak={a:h,fx:h.fx,fy:h.fy,ox:h.ox,oy:h.oy};
++    const par=h.att&&byId(h.to);
++    if(par&&par.F){
++      const qq=par.F.inverse().transformPoint(new DOMPoint((p.x*Z.s+Z.x)*dpr,(p.y*Z.s+Z.y)*dpr)),u=S0*par.size;
++      dragOff={dx:qq.x/u*par.face-h.ox,dy:qq.y/u-h.oy};
++    }else{dragOff={dx:h.fx*W-p.x,dy:h.fy*H-p.y};mv(p)}
++  }
++  else if(Z.s>1.01&&!vLock)pan={x:q.x-Z.x,y:q.y-Z.y};
++}
++cv.addEventListener('pointermove',e=>{
++  if(!ptrs.has(e.pointerId))return;const q=sp(e);ptrs.set(e.pointerId,q);
++  if(pz0&&ptrs.size===2){
++    const[a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1,m={x:(a.x+b.x)/2,y:(a.y+b.y)/2},s=cl(pz0.Z.s*d/pz0.d,.5,6),w0={x:(pz0.m.x-pz0.Z.x)/pz0.Z.s,y:(pz0.m.y-pz0.Z.y)/pz0.Z.s};
++    Z.s=s;Z.x=m.x-s*w0.x;Z.y=m.y-s*w0.y;return}
++  if(e.pointerId!==pid)return;
++  if(rulerOn&&rulerPt){const p=wp(q);rulerPt.x1=p.x;rulerPt.y1=p.y;return}
++  if(drawing)(paint?stroke(q):adjMode?adjBrushAt(q,pl):pbox?(boxEnd=loc(pl,q)):((bpn||psn)?strokeSel(q):penAt(q,pl)));else if(wg)wmove(q);else if(tgt){const p=wp(q);mv(p);if(tgt.phys){thist.push({t:performance.now(),x:p.x,y:p.y});if(thist.length>6)thist.shift()}}else if(pan){Z.x=q.x-pan.x;Z.y=q.y-pan.y}
++});
++let thist=[],firstDownTs=0;
++const end=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pz0=null;
++  if(!ptrs.size){
++    if(strokeActor){strokeActor.wd=true;strokeActor=null}
++    if(rulerOn&&rulerPt){
++      const px=Math.hypot(rulerPt.x1-rulerPt.x0,rulerPt.y1-rulerPt.y0);
++      if(px>4){pendingRulerPx=px;$('pRulerSet').style.display='flex'}
++      rulerPt=null;drawing=false;pid=-1;return;
++    }
++    if(tgt&&tgt.phys&&tgt.phys.on&&!tgt.phys.fixed&&thist.length>=2){
++      const a=thist[0],b=thist[thist.length-1],dt=(b.t-a.t)/1000;
++      if(dt>0.01){tgt.phys.vx=cl((b.x-a.x)/dt,-2000,2000);tgt.phys.vy=cl((b.y-a.y)/dt,-2000,2000)}
++    }
++    if(pbox&&drawing&&pl&&boxStart&&boxEnd){rectSel(pl,boxStart,boxEnd);flashUntil=performance.now()+500}
++    thist=[];up();
++  }
++};
++addEventListener('pointerup',end);addEventListener('pointercancel',end);
++addEventListener('blur',()=>{ptrs.clear();pz0=null;up()});
++cv.addEventListener('lostpointercapture',end);
++cv.addEventListener('contextmenu',e=>e.preventDefault());
++cv.addEventListener('wheel',e=>{e.preventDefault();if(vLock)return;const q=sp(e),w=wp(q),s=cl(Z.s*(e.deltaY<0?1.1:1/1.1),.25,12);Z.s=s;Z.x=q.x-s*w.x;Z.y=q.y-s*w.y},{passive:false});
++$('zr').onclick=()=>{if(vLock)return;Z.s=1;Z.x=0;Z.y=0};
++let handMode=false,vLock=false;$('vlk').onclick=()=>{vLock=!vLock;$('vlk').classList.toggle('on',vLock)};
++$('hand').onclick=()=>{handMode=!handMode;$('hand').classList.toggle('on',handMode)};
++function zoomBy(k){if(vLock)return;const cx=W/2,cy=H/2,w0={x:(cx-Z.x)/Z.s,y:(cy-Z.y)/Z.s},s=cl(Z.s*k,.25,12);Z.s=s;Z.x=cx-s*w0.x;Z.y=cy-s*w0.y}
++$('zin').onclick=()=>zoomBy(1.35);$('zout').onclick=()=>zoomBy(1/1.35);
+diff --git a/src/js/90-ui.js b/src/js/90-ui.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..819a08505eb830cd58e2f61810c8d25d406494e1
+--- /dev/null
++++ b/src/js/90-ui.js
+@@ -0,0 +1,95 @@
++
++/* UI */
++const PR=[
++ ['静止',{sel:{}}],
++ ['往復',{sel:{m:[.3,1,'sin',0]}}],
++ ['回転',{sel:{r:[180,.4,'ramp']}}],
++ ['ぶるぶる',{sel:{m:[.03,9,'sin',0],r:[2,11,'sin']}}],
++ ['引き上げ(止め動き)',{c:{s:[.06,3,'sin']},o:{m:[.35,1.3,'hold',90,1]}}],
++ ['出し入れ(止め動き)',{c:{r:[-5,1.2,'hold',0,1]},o:{m:[.25,1.2,'hold',0,1]}}],
++ ['かたむけ(止め動き)',{c:{m:[.04,.5,'hold',90,1]},o:{r:[-40,.5,'hold',0,1]}}]
++];
++function ap(l,s){for(const[k]of K)l.ch[k]=cc0();for(const k in s)l.ch[k]={a:s[k][0],hz:s[k][1],w:s[k][2],d:s[k][3]||0,e:s[k][4]||0,ph:0}}
++function pairOf(){return[sel,sel.toType==='layer'?null:byId(sel.to)]}
++PR.forEach(([n,p])=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{
++  if(p.sel)ap(sel,p.sel);else{const[c,o]=pairOf();if(c)ap(c,p.c||{});if(o)ap(o,p.o||{})}renderCh()};$('pr').appendChild(b)});
++
++const fm=(k,v)=>k==='m'?Math.round(v*S0)+'px':k==='r'?v+'°':Math.round(v*100)+'%';
++function renderCh(){
++  const l=sel;
++  $('chs').innerHTML=K.map(([k,n,mx,st])=>{const c=l.ch[k];
++    return `<div class="cc"><div class="ct"><b>${n}</b><span><select data-k="${k}" data-p="e" aria-label="${n}の基準"><option value="0"${c.e?'':' selected'}>中心</option><option value="1"${c.e?' selected':''}>はじ</option></select> <select data-k="${k}" data-p="w" aria-label="${n}の波形">${Object.entries(WN).map(([v,t])=>`<option value="${v}"${c.w===v?' selected':''}>${t}</option>`).join('')}</select></span></div>
++    <label>大きさ<b class="v">${fm(k,c.a)}</b><input type="range" data-k="${k}" data-p="a" min="${-mx}" max="${mx}" step="${st}" value="${c.a}"></label>
++    ${k==='m'?`<label>方向<b class="v">${c.d}°</b><input type="range" data-k="m" data-p="d" min="0" max="180" step="5" value="${c.d}"></label>`:''}
++    <label>はやさ<b class="v">${c.hz}Hz</b><input type="range" data-k="${k}" data-p="hz" min=".1" max="12" step=".1" value="${c.hz}"></label>
++    ${k==='r'?`<div class="row"><span class="lab">半径</span><input type="range" id="rr" min="0" max="2.5" step="0.05" value="${l.rr||0}" aria-label="回転の半径（0でその場回転）"></div>`:''}
++    ${k==='s'?'<div class="row"><span class="lab">支点</span><span id="pvIn"></span></div>':''}
++    </div>`}).join('');
++  enh($('chs'));
++  const pvBox=$('pvIn');if(pvBox){[['上',-.5],['中',0],['下',.5]].forEach(([n,v])=>pvBox.appendChild(tog(n,l.pv===v,()=>{l.pv=v;renderCh()})));}
++}
++$('chs').oninput=e=>{
++  const t=e.target;
++  if(t.id==='rr'){sel.rr=+t.value;flashUntil=performance.now()+700;return}
++  const k=t.dataset.k,p=t.dataset.p,c=sel.ch[k];if(!c)return;
++  c[p]=p==='w'?t.value:+t.value;const v=t.parentNode.querySelector('.v');
++  if(v)v.textContent=p==='a'?fm(k,c.a):p==='hz'?c.hz+'Hz':c.d+'°';
++  if(p==='a'||p==='d')flashUntil=performance.now()+700;
++};
++
++function tog(txt,on,fn){const b=document.createElement('button');b.textContent=txt;b.classList.toggle('on',!!on);b.onclick=fn;return b}
++function thumbURL(a){
++  const S=40,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),im=a.img,iw=im.naturalWidth||im.width||1,ih=im.naturalHeight||im.height||1,k=Math.min(S/iw,S/ih);
++  g.drawImage(im,(S-iw*k)/2,(S-ih*k)/2,iw*k,ih*k);return c.toDataURL();
++}
++function chips(){
++  const box=$('ch1');box.innerHTML='';
++  const b=document.createElement('button'),y=sel?layOf(sel):LY(curLid);b.id='lyopen';b.className='lyopen';b.setAttribute('aria-label','レイヤーとオブジェクトの一覧を開く');
++  if(sel){const im=document.createElement('img');im.alt='';im.src=thumbURL(sel);b.append(im)}
++  b.append(document.createTextNode('🗂 '+y.name+(sel?' › '+sel.name:'')+' ▾'));b.onclick=()=>lyToggle();box.appendChild(b);layUi();
++}
++function frame(l){
++  if(!W||!l||vLock||noFrame)return;
++  const att=l.att&&byId(l.to);
++  const sx=att?l.wx:l.fx*W,sy=att?l.wy:l.fy*H,pad=Math.min(W,H)*.14;
++  let sxp=sx*Z.s+Z.x,syp=sy*Z.s+Z.y;
++  if(sxp<pad)Z.x+=pad-sxp;else if(sxp>W-pad)Z.x-=sxp-(W-pad);
++  if(syp<pad)Z.y+=pad-syp;else if(syp>H-pad)Z.y-=syp-(H-pad);
++}
++function setSel(l){
++  if(l&&l.layerId!=null&&LAYERS.some(y=>y.id===l.layerId))curLid=l.layerId;
++  sel=l;chips();frame(l);
++  $('nm').value=l.name;
++  adjUi();
++  $('sz').value=l.size;$('szv').textContent='×'+l.size.toFixed(2);$('rt').value=l.rot;$('rtv').textContent=l.rot+'°';$('bl').value=l.blur;$('blv').textContent=l.blur+'px';
++  $('em').innerHTML='';
++  (l.sp?[]:EPAL).forEach(x=>{const b=document.createElement('button');b.textContent=x;b.setAttribute('aria-label',EDESC[x]||x);armTip(b);b.onclick=()=>{setImg(l,emo(x));chips();$('em').style.display='none'};$('em').appendChild(b)});
++  $('em').style.display='none';$('emTgl').style.display=l.sp?'none':'';
++  const ex=$('ex');ex.innerHTML='';
++  ex.appendChild(tog('向きを反転',0,()=>{l.face*=-1}));
++  physUi();
++  const s=document.createElement('select');s.setAttribute('aria-label','対象');
++  s.innerHTML='<option value="">対象なし</option>'+AC.filter(a=>a!==l).map(o=>`<option value="${o.id}"${l.toType!=='layer'&&l.to===o.id?' selected':''}>${o.name}</option>`).join('')+LAYERS.map(y=>`<option value="L${y.id}"${l.toType==='layer'&&l.to===y.id?' selected':''}>🗂 ${y.name}</option>`).join('');
++  s.onchange=()=>{if(l.att)detach(l);const v=s.value;if(v[0]==='L'){l.to=+v.slice(1);l.toType='layer'}else{l.to=+v||null;l.toType='actor'}if(!l.to)l.maskTo=false;setSel(l)};
++  ex.appendChild(s);
++  ex.appendChild(tog('対象についていく',l.att,()=>{if(!l.to){note('先に「対象」を選んでください');return}l.att?detach(l):attach(l);setSel(l)}));
++  ex.appendChild(tog('対象のマスクで隠す',l.maskTo,()=>{if(!l.to){note('先に「対象」を選んでください');return}l.maskTo=!l.maskTo;setSel(l)}));
++  const hasP=l.att&&byId(l.to);
++  $('fbRow').style.display=hasP?'':'none';
++  if(hasP){$('fbF').classList.toggle('on',l.front);$('fbB').classList.toggle('on',!l.front)}
++  if(l.txt!=null){$('tx').value=l.txt;$('tcl').value=l.tcol}
++  const mo=l.maskTo;$('mv1').style.display=$('mv2').style.display=mo?'':'none';
++  if(mo){$('kp').value=l.keep;$('eat').classList.toggle('on',l.eat);$('rst').style.display=l.eat?'':'none'}
++  syncBm();renderPins();renderCh();
++}
++$('nm').oninput=e=>{sel.name=e.target.value||sel.name;chips()};
++$('emTgl').onclick=()=>{$('em').style.display=$('em').style.display==='none'?'flex':'none'};
++$('fbF').onclick=()=>{sel.front=true;setSel(sel)};
++$('fbB').onclick=()=>{sel.front=false;setSel(sel)};
++$('sz').oninput=e=>{sel.size=+e.target.value;$('szv').textContent='×'+sel.size.toFixed(2)};
++$('rt').oninput=e=>{sel.rot=+e.target.value;$('rtv').textContent=sel.rot+'°'};
++$('kp').oninput=e=>{sel.keep=+e.target.value};
++$('eat').onclick=()=>{sel.eat=!sel.eat;$('eat').classList.toggle('on',sel.eat);$('rst').style.display=sel.eat?'':'none'};
++$('rst').onclick=()=>{sel.bite=nb()};
++$('ca').onclick=()=>{const c=pc();if(c){c.mask.getContext('2d').clearRect(0,0,MR,MR);c.hasMask=false}};
++$('bs').oninput=e=>{brushMask=+e.target.value};
+diff --git a/src/manifest.json b/src/manifest.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..13849aa29e70fc96879799e13e57a2a587945833
+--- /dev/null
++++ b/src/manifest.json
+@@ -0,0 +1,34 @@
++{
++  "output": "action-maker-v19-layer-tree.html",
++  "fragments": [
++    "document-prefix.html",
++    "styles.css",
++    "document-before-script.html",
++    "js/00-bootstrap.js",
++    "js/10-motion.js",
++    "js/20-adjustments.js",
++    "js/30-actors-and-drawing.js",
++    "js/40-masks.js",
++    "js/50-physics.js",
++    "js/60-input-state.js",
++    "js/70-layers.js",
++    "js/80-pointer-events.js",
++    "js/90-ui.js",
++    "js/100-background-and-export.js",
++    "js/110-pen-and-text.js",
++    "js/120-warp.js",
++    "js/130-gif.js",
++    "js/140-controls.js",
++    "js/150-blur.js",
++    "js/160-still-export.js",
++    "js/170-undo.js",
++    "js/180-project-io.js",
++    "js/190-hints-and-demos.js",
++    "js/200-warp-ui.js",
++    "js/210-performance.js",
++    "js/220-parts.js",
++    "js/230-color-picker.js",
++    "js/240-tooling-and-init.js",
++    "document-suffix.html"
++  ]
++}
+diff --git a/src/styles.css b/src/styles.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..da35bafe9aa7211524fdc7791f70024d832f0c72
+--- /dev/null
++++ b/src/styles.css
+@@ -0,0 +1,75 @@
++
++:root{--bg:#fff7e6;--ink:#2b2140;--sky:#c9f0e4;--ground:#f5cf7a;--pane:#fff;--acc:#ff5d8f;--line:#e6dcc6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
++@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1830;--ink:#f3eefc;--sky:#28405a;--ground:#6b5a2e;--pane:#2b2445;--acc:#ff7aa6;--line:#41386a}}
++:root[data-theme="dark"]{--bg:#1d1830;--ink:#f3eefc;--sky:#28405a;--ground:#6b5a2e;--pane:#2b2445;--acc:#ff7aa6;--line:#41386a}
++*{box-sizing:border-box}
++html,body{margin:0}
++body{background:var(--bg);color:var(--ink);font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif;padding:12px;max-width:680px;margin:0 auto}
++h1{font-size:20px;font-weight:900;margin:4px 0 10px}
++#wrap{position:relative;border-radius:18px;overflow:hidden;background:var(--pane)}
++canvas{display:block;width:100%;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
++#fsb,#pz,#zr,#rc2,#un2,#sn2,#hq,#hand,#vlk,#zin,#zout{position:absolute;top:8px;z-index:5;padding:5px 8px;font-weight:900;background:var(--pane);opacity:.92}
++#fsb{right:8px}#rc2{right:88px}#pz{left:8px}#un2{left:46px}#hand,#vlk,#zin,#zout,#zr{top:46px}#hand{left:8px}#vlk{left:46px}#zin{left:84px}#zout{left:118px}#zr{left:152px}#sn2{right:124px}#hq{right:160px}
++.hint{position:absolute;left:10px;bottom:8px;right:10px;font-size:12px;opacity:.75;pointer-events:none}
++.pane{background:var(--pane);border:2px solid var(--line);border-radius:14px;padding:10px;margin-top:10px}
++.row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
++.row:first-child{margin-top:0}
++.lab{font-size:13px;font-weight:900;min-width:3em}
++button,.file,select{font:inherit;font-size:13px;color:inherit;background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:6px 10px;cursor:pointer;line-height:1.3}
++button.on{border-color:var(--acc);background:var(--acc);color:#fff}
++.tools button{flex:1 1 28%;font-weight:900;font-size:14px}
++#physMode{width:100%;background:#3a2470;color:#fff;border-color:#3a2470}
++#tabs button{position:relative}
++#tabs button.flag::after{content:'';position:absolute;top:1px;right:4px;width:7px;height:7px;border-radius:50%;background:#ff2d87;box-shadow:0 0 0 2px var(--pane)}
++#rc2.rec{background:#ff2d87;color:#fff;animation:pulse 1s infinite}
++@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
++.em button{font-size:20px;padding:3px 8px}
++input[type=range]{flex:1;min-width:90px;accent-color:var(--acc)}
++input[type=file]{display:none}
++.cc{border:2px solid var(--line);border-radius:12px;padding:8px;margin-top:8px}
++.ct{display:flex;justify-content:space-between;align-items:center}
++.cc label{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:4px}
++.cc label input{flex:1}
++.v{min-width:3.6em;font-weight:900;text-align:right}
++.grp{border:2px solid var(--line);border-radius:12px;padding:8px;margin-top:10px}.grp .gh{font-weight:900;font-size:13px;margin-bottom:2px;opacity:.85}.grp.alt{background:rgba(59,130,246,.07)}
++#ch1 button img{vertical-align:middle}
++.ltip{position:fixed;z-index:99;background:#222;color:#fff;font-size:12px;padding:5px 9px;border-radius:8px;max-width:68vw;pointer-events:none;box-shadow:0 3px 10px rgba(0,0,0,.35)}
++.note{font-size:12px;opacity:.7;margin-top:6px}
++#tc{display:none}
++.lyopen{display:flex;align-items:center;gap:6px}.lyopen img{width:22px;height:22px;object-fit:contain;border-radius:5px;background:rgba(127,127,127,.15)}
++.lypop{position:fixed;z-index:300;width:min(94vw,440px);max-height:72vh;overflow:auto;background:var(--pane);color:var(--ink);border:2px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:10px;overscroll-behavior:contain}.lypop[hidden]{display:none}
++.lyhd{display:flex;justify-content:space-between;align-items:center}.lytb{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
++.trow{display:flex;align-items:center;gap:6px;border:2px solid transparent;border-radius:10px;padding:4px 6px;margin-top:2px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
++.trow.l{margin-top:8px;font-weight:900}.trow.o{margin-left:6px}.trow.on{border-color:var(--acc);background:rgba(59,130,246,.10)}.trow.off{opacity:.55}.trow.drag{opacity:.5}.trow.ov{border-style:dashed;border-color:var(--acc)}
++.trow img{width:28px;height:28px;object-fit:contain;border-radius:6px;background:rgba(127,127,127,.15);flex:none}.trow .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.trow .br{opacity:.6;flex:none}.trow button{padding:2px 8px}
++body.fs{overflow:hidden}
++body.fs #wrap{position:fixed;left:0;top:0;right:0;bottom:0;height:100vh;height:100dvh;border-radius:0;z-index:50}
++body.fs #fsb,body.fs #pz,body.fs #zr,body.fs #rc2,body.fs #un2,body.fs #sn2,body.fs #hq,body.fs #zr{top:calc(8px + env(safe-area-inset-top,0px))}
++body.fs #hand,body.fs #vlk,body.fs #zin,body.fs #zout,body.fs #zr{top:calc(46px + env(safe-area-inset-top,0px))}
++body.fs .hint{bottom:auto;top:calc(52px + env(safe-area-inset-top,0px))}
++body.fs #tp{position:fixed;left:0;right:0;bottom:0;z-index:60;margin:0;border-radius:14px 14px 0 0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
++body.fs #tp .mv{display:none}
++body.fs #tc{display:inline-block;flex:0 0 auto}
++body.fs.tpc #tp .k1,body.fs.tpc #tp .k2,body.fs.tpc #tb{display:none}
++.pop{position:absolute;left:8px;right:8px;top:48px;z-index:7;background:var(--pane);border:2px solid var(--line);border-radius:12px;padding:8px 10px;font-size:13px;display:flex;gap:8px;align-items:flex-start;box-shadow:0 4px 14px rgba(0,0,0,.25)}
++.pop[hidden]{display:none}
++.pop{pointer-events:none}
++#tray{position:absolute;left:8px;bottom:8px;display:flex;gap:6px;z-index:6;flex-wrap:wrap;max-width:70%}
++#tray:empty{display:none}
++#tray button{padding:2px;border-radius:10px;background:var(--pane);opacity:.95}
++#tray img{width:38px;height:38px;object-fit:contain;display:block}
++body.fs #tray{bottom:auto;top:calc(96px + env(safe-area-inset-top,0px));flex-direction:column}
++details summary{cursor:pointer;font-weight:900;font-size:13px}
++.pop.pop button{pointer-events:auto}
++body.fs .pop{top:calc(52px + env(safe-area-inset-top,0px))}
++.num{width:64px;font:inherit;font-size:13px;padding:4px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:inherit;text-align:right}
++.stp{padding:2px 9px;font-size:16px;line-height:1;font-weight:900}
++#topbar select{flex:1;min-width:120px}
++.tab{display:none;margin-top:8px}.tab.on{display:block}
++#tabs button{flex:1 1 auto;font-weight:900;font-size:13px;padding:6px 8px}
++#tp{max-height:46vh;overflow:auto;overscroll-behavior:contain}body.fs #tp{max-height:var(--tph,46vh)}#tp::after{content:"";display:block;height:34vh}
++#grip{display:none}
++body.fs #grip{display:block;position:sticky;top:0;z-index:5;height:28px;margin:0 0 4px;background:var(--pane);cursor:ns-resize;touch-action:none}
++body.fs #grip::before{content:"";position:absolute;left:50%;top:11px;width:56px;height:6px;margin-left:-28px;border-radius:3px;background:var(--line)}
++body.fs.tpc #tp .tab,body.fs.tpc #tp #tabs button[data-t]{display:none}
++:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+diff --git a/tools/build.js b/tools/build.js
+new file mode 100755
+index 0000000000000000000000000000000000000000..1b701c28c3f955f193254b5ac66b42500fd113d8
+--- /dev/null
++++ b/tools/build.js
+@@ -0,0 +1,25 @@
++#!/usr/bin/env node
++'use strict';
++
++const fs = require('fs');
++const path = require('path');
++
++const root = path.resolve(__dirname, '..');
++const manifestPath = path.join(root, 'src', 'manifest.json');
++const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
++const content = manifest.fragments
++  .map(fragment => fs.readFileSync(path.join(root, 'src', fragment), 'utf8'))
++  .join('');
++const outputPath = path.join(root, manifest.output);
++
++if (process.argv.includes('--check')) {
++  if (!fs.existsSync(outputPath) || !Buffer.from(content).equals(fs.readFileSync(outputPath))) {
++    console.error(`OUT_OF_DATE: ${manifest.output} does not match src fragments`);
++    process.exitCode = 1;
++  } else {
++    console.log(`BUILD_MATCH: ${manifest.output}`);
++  }
++} else {
++  fs.writeFileSync(outputPath, content);
++  console.log(`BUILT: ${manifest.output}`);
++}
