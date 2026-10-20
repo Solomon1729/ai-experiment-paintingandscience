@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#16222C">
+<title>高画質化</title>
+<style>
+:root{--paper:#E9EDEF;--ink:#16222C;--mute:#566772;--line:#BFCAD1;--acc:#0B6E7F;--ok:#2F7D4F;--warn:#B5651D;--bad:#A8431F}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 system-ui,"Noto Sans JP","Hiragino Sans",sans-serif}
+main{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:26px;letter-spacing:.04em;margin:8px 0 2px}
+.lead{color:var(--mute);margin:0 0 20px;font-size:14px}
+section{border-top:1px solid var(--line);padding:16px 0}
+h2{font-size:15px;margin:0 0 8px}
+dl{display:grid;grid-template-columns:5.5em 1fr;gap:4px 8px;margin:0 0 16px;font-size:14px}
+dt{color:var(--mute)}
+dd{margin:0}
+dd::before{content:"";display:inline-block;width:.6em;height:.6em;border-radius:50%;margin-right:.5em;background:var(--mute)}
+dd[data-s=ok]::before{background:var(--ok)}
+dd[data-s=warn]::before{background:var(--warn)}
+dd[data-s=bad]::before{background:var(--bad)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border-radius:10px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #7FC4D1;outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+input[type=text],select{min-height:44px;width:100%;padding:0 10px;border:1.5px solid var(--line);border-radius:8px;background:#fff;font:inherit;color:inherit}
+label.f{display:block;font-size:14px;color:var(--mute);margin:10px 0 4px}
+details{margin-top:10px;font-size:14px}
+summary{cursor:pointer;color:var(--mute);min-height:32px}
+.note{font-size:13px;color:var(--mute);margin:8px 0 0}
+progress{width:100%;height:10px;accent-color:var(--acc);margin:12px 0 4px}
+#msg{min-height:1.6em;font-size:14px;margin:10px 0 0}
+#msg.err{color:var(--bad)}
+.cmp{position:relative;touch-action:pan-y;user-select:none;-webkit-user-select:none;border:1px solid var(--line);background:repeating-conic-gradient(#d5dce0 0 25%,#e9edef 0 50%) 0 0/16px 16px}
+.cmp canvas{display:block;width:100%;height:auto}
+.cmp canvas.bf{position:absolute;inset:0;width:100%;height:100%}
+.cmp .bar{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);pointer-events:none}
+.cmp .tag{position:absolute;top:8px;padding:2px 8px;background:rgba(22,34,44,.82);color:#fff;font-size:12px;border-radius:4px;pointer-events:none}
+</style>
+</head>
+<body>
+<main>
+<h1>高画質化</h1>
+<p class="lead">画像を4倍に拡大します。処理はこの端末の中だけで行います。</p>
+
+<dl>
+  <dt>GPU</dt><dd id="s-gpu" data-s="">確認中</dd>
+  <dt>モデル</dt><dd id="s-model" data-s="">確認中</dd>
+  <dt>オフライン</dt><dd id="s-off" data-s="">確認中</dd>
+  <dt>顔モデル</dt><dd id="s-face" data-s="">確認中</dd>
+  <dt>補間モデル</dt><dd id="s-rife" data-s="">確認中</dd>
+  <dt>消去モデル</dt><dd id="s-inp" data-s="">確認中</dd>
+</dl>
+
+<section>
+  <h2>モデル</h2>
+  <div class="row">
+    <button class="btn pri" id="getModel">モデルを取得</button>
+    <label class="btn" for="modelFile">ファイルから読み込む</label>
+    <input type="file" id="modelFile" accept=".onnx" hidden>
+  </div>
+  <progress id="dlp" max="1" value="0" hidden></progress>
+  <details>
+    <summary>取得元を変更</summary>
+    <label class="f" for="modelUrl">モデルのURL(.onnx)</label>
+    <input type="text" id="modelUrl" inputmode="url" spellcheck="false">
+    <p class="note">入力・出力が 0〜1 の RGB(NCHW)で、4倍に拡大する ONNX モデルが使えます。</p>
+  </details>
+</section>
+
+<section>
+  <h2>画像</h2>
+  <div class="row">
+    <label class="btn" for="imgFile">画像を選ぶ</label>
+    <input type="file" id="imgFile" accept="image/*" hidden>
+  </div>
+  <label class="f" for="maxSide">入力の長辺の上限</label>
+  <select id="maxSide">
+    <option value="512">512px(速い)</option>
+    <option value="768">768px</option>
+    <option value="1024" selected>1024px</option>
+    <option value="1536">1536px(遅い・メモリを多く使う)</option>
+    <option value="99999">元の大きさ(色の補正向き。AI処理では非常に遅い)</option>
+  </select>
+  <p class="note" id="info">画像が未選択です。</p>
+</section>
+
+<section>
+  <h2>実行</h2>
+  <div class="row">
+    <button class="btn pri" id="run" disabled>高画質化を実行</button>
+    <button class="btn" id="cancel" hidden>中断</button>
+  </div>
+  <progress id="pg" max="1" value="0" hidden></progress>
+  <div id="msg" role="status" aria-live="polite"></div>
+</section>
+
+<section>
+  <h2>顔の修復</h2>
+  <div class="row"><button class="btn" id="getFace">顔モデルを取得</button><button class="btn" id="detFace">顔を自動検出</button></div>
+  <p class="note">画像を選ぶと下に表示されます。「顔を自動検出」を押すか、顔(頭全体)を囲むようにドラッグして範囲を指定してください。自動検出は、最も大きい顔を傾きも含めて選びます。</p>
+  <canvas id="fp" style="width:100%;height:auto;touch-action:none;border:1px solid var(--line);margin-top:8px" hidden></canvas>
+  <div class="row" style="margin-top:10px"><button class="btn pri" id="runFace" disabled>顔を修復</button></div>
+</section>
+
+<section>
+  <h2>フレーム補間</h2>
+  <div class="row"><button class="btn" id="getRife">補間モデルを取得</button></div>
+  <p class="note">連続する2枚の画像の間のコマを作ります。大きさは「入力の長辺の上限」に従います。</p>
+  <div class="row">
+    <label class="btn" for="fA">前の画像</label><input type="file" id="fA" accept="image/*" hidden>
+    <label class="btn" for="fB">後の画像</label><input type="file" id="fB" accept="image/*" hidden>
+  </div>
+  <label class="f" for="rifeN">作る中間コマの数</label>
+  <select id="rifeN"><option value="1" selected>1枚(中央)</option><option value="3">3枚(4分の1ずつ)</option></select>
+  <div class="row" style="margin-top:10px"><button class="btn pri" id="runRife" disabled>補間を実行</button></div>
+  <div id="rifeOut"></div>
+  <p class="note" id="rifeNote" hidden>画像をタップすると保存できます。</p>
+</section>
+
+<section>
+  <h2>連続写真から動画</h2>
+  <p class="note">複数枚の写真をファイル名順に並べ、隣り合う写真の間を補間して WebM 動画にします。補間モデルが必要です。</p>
+  <div class="row"><label class="btn" for="fM">写真を選ぶ(複数)</label><input type="file" id="fM" accept="image/*" multiple hidden></div>
+  <label class="f" for="mN">写真の間に作るコマ数</label>
+  <select id="mN"><option value="1">1</option><option value="3" selected>3</option><option value="7">7</option></select>
+  <label class="f" for="mFps">動画のコマ数(fps)</label>
+  <select id="mFps"><option value="12">12</option><option value="24" selected>24</option><option value="30">30</option></select>
+  <div class="row" style="margin-top:10px"><button class="btn pri" id="runSeq" disabled>動画を作る</button></div>
+  <video id="seqV" controls playsinline hidden style="width:100%;margin-top:8px"></video>
+  <div class="row" style="margin-top:8px"><a class="btn" id="seqDl" download="interp.webm" hidden>WebM を保存</a></div>
+</section>
+
+<section>
+  <h2>塗って消す</h2>
+  <div class="row"><button class="btn" id="getInp">消去モデルを取得</button></div>
+  <p class="note">画像を選ぶと下に表示されます。消したい部分を指でなぞって塗り、「消去を実行」を押してください。</p>
+  <label class="f" for="brush">筆の太さ</label>
+  <select id="brush"><option value="0.015">細い</option><option value="0.03" selected>普通</option><option value="0.06">太い</option></select>
+  <canvas id="ip" style="width:100%;height:auto;touch-action:none;border:1px solid var(--line);margin-top:8px" hidden></canvas>
+  <div class="row" style="margin-top:10px">
+    <button class="btn pri" id="runInp" disabled>消去を実行</button>
+    <button class="btn" id="clrInp">塗りを消す</button>
+    <button class="btn" id="rstInp">最初の画像に戻す</button>
+  </div>
+</section>
+
+<section>
+  <h2>色の補正</h2>
+  <p class="note">画像を選ぶと下に表示されます。切り替えで「合わせたい部分(水色)」と「基準にする周り(橙)」を選び、画像の上をドラッグして囲みます。</p>
+  <select id="ccMode"><option value="t">いま囲む: 合わせたい部分(水色)</option><option value="r">いま囲む: 基準にする周り(橙)</option></select>
+  <canvas id="cc" style="width:100%;height:auto;touch-action:none;border:1px solid var(--line);margin-top:8px" hidden></canvas>
+  <label class="f" for="ccMeth">周りへの合わせ方</label>
+  <select id="ccMeth"><option value="g">平均色を合わせる(文字・資料向き)</option><option value="d">色の分布を合わせる(写真向き)</option></select>
+  <div class="row" style="margin-top:10px"><button class="btn pri" id="ccMatch">周りの色に合わせる</button></div>
+  <label class="f" for="ccScope">手動調整の範囲</label>
+  <select id="ccScope"><option value="t">合わせたい部分だけ</option><option value="a">画像全体</option></select>
+  <div id="ccSl"></div>
+  <div class="row" style="margin-top:10px"><button class="btn pri" id="ccApply">調整を適用して結果を見る</button><button class="btn" id="ccReset">最初に戻す</button></div>
+</section>
+
+<section id="result" hidden>
+  <h2>結果</h2>
+  <div class="cmp" id="cmp">
+    <span class="tag" style="left:8px">元</span>
+    <span class="tag" style="right:8px">拡大後</span>
+    <div class="bar" id="bar"></div>
+  </div>
+  <p class="note">画像の上を左右になぞると、元画像と拡大後を見比べられます。</p>
+  <div class="row" style="margin-top:10px">
+    <button class="btn pri" id="save">PNGで保存</button>
+  </div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/ort.webgpu.min.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const ORT_BASE = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/';
+const RUNTIME = [ORT_BASE + 'ort.webgpu.min.js', ORT_BASE + 'ort-wasm-simd-threaded.jsep.mjs', ORT_BASE + 'ort-wasm-simd-threaded.jsep.wasm'];
+const DEFAULT_URL = 'https://huggingface.co/skillsafe-ai/realesr-general-x4v3/resolve/main/model.onnx';
+const MODEL_CACHE = 'up-model-v1', SHELL_CACHE = 'up-v1';
+
+let session = null, backend = '', T = 128, bmp = null, outCanvas = null, ac = null;
+
+function setS(id, text, s) { const e = $('#s-' + id); e.textContent = text; e.dataset.s = s || ''; }
+function msg(t, err) { const m = $('#msg'); m.textContent = t; m.className = err ? 'err' : ''; if (err) emitError(t); }
+const fmtT = (s) => s >= 60 ? Math.floor(s / 60) + '分' + Math.round(s % 60) + '秒' : Math.round(s) + '秒';
+const ls = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+/* ---------- 準備 ---------- */
+if (window.ort) { ort.env.wasm.wasmPaths = ORT_BASE; ort.env.wasm.numThreads = 1; }
+$('#modelUrl').value = ls.get('modelUrl2') || DEFAULT_URL;
+setS('gpu', navigator.gpu ? 'WebGPU を利用できます' : 'WebGPU なし(CPUで動くため非常に遅い)', navigator.gpu ? 'ok' : 'warn');
+if (!window.ort) { setS('model', '実行ライブラリを読み込めません。オンラインで開き直してください', 'bad'); $('#getModel').disabled = true; }
+
+async function offlineReady() {
+  try {
+    for (const u of RUNTIME) if (!(await caches.match(u, { ignoreVary: true }))) return false;
+    return !!ls.get('modelKey') && !!(await (await caches.open(MODEL_CACHE)).match(ls.get('modelKey')));
+  } catch { return false; }
+}
+async function refreshOffline() {
+  if (!('serviceWorker' in navigator)) return setS('off', 'この環境では使えません(HTTPSで開いてください)', 'bad');
+  const ok = await offlineReady();
+  setS('off', ok ? '準備できています(通信なしで動きます)' : 'まだです(オンラインでモデル取得まで進めてください)', ok ? 'ok' : 'warn');
+}
+async function warm() {
+  if (!navigator.onLine || !window.ort) return;
+  const c = await caches.open(SHELL_CACHE);
+  for (const f of RUNTIME) { if (!(await c.match(f))) { try { await c.add(f); } catch {} } }
+  refreshOffline();
+}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(warm).catch(() => refreshOffline());
+} else refreshOffline();
+
+/* ---------- モデル ---------- */
+async function download(url, sid = 'model') {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('モデルを取得できませんでした(HTTP ' + res.status + ')');
+  const total = +res.headers.get('content-length') || 0, rd = res.body.getReader(), parts = [];
+  let got = 0; const p = $('#dlp'); p.hidden = false; p.removeAttribute('value');
+  for (;;) {
+    const { done, value } = await rd.read(); if (done) break;
+    parts.push(value); got += value.length;
+    if (total) p.value = got / total;
+    setS(sid, '取得中 ' + (got / 1048576).toFixed(1) + ' MB' + (total ? ' / ' + (total / 1048576).toFixed(1) + ' MB' : ''), 'warn');
+  }
+  p.hidden = true;
+  return new Blob(parts);
+}
+async function putCache(key, blob) {
+  try { navigator.storage?.persist?.(); await (await caches.open(MODEL_CACHE)).put(key, new Response(blob)); ls.set('modelKey', key); } catch { msg('モデルを端末に保存できませんでした(今回のみ使えます)', true); }
+}
+async function useModel(blob, label) {
+  setS('model', '読み込み中…', 'warn');
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const mk = (ep) => ort.InferenceSession.create(bytes, { executionProviders: [ep] });
+  const detectT = () => {
+    T = 128;
+    try {
+      const m = session.inputMetadata, d = (Array.isArray(m) ? m[0] : m[session.inputNames[0]])?.shape;
+      if (d && typeof d[2] === 'number' && d[2] > 0) T = d[2];
+    } catch {}
+  };
+  try {
+    // GPUで作成でき、試運転も通った場合だけGPUを使う。失敗したらCPUに切り替える。
+    session = await mk('webgpu'); backend = 'GPU'; detectT();
+    await session.run({ [session.inputNames[0]]: new ort.Tensor('float32', new Float32Array(3 * T * T), [1, 3, T, T]) });
+  } catch {
+    session = await mk('wasm'); backend = 'CPU'; detectT();
+  }
+  setS('model', label + '(' + backend + ' / タイル ' + T + 'px)', backend === 'GPU' ? 'ok' : 'warn');
+  updateRun(); refreshOffline();
+}
+$('#getModel').onclick = async () => {
+  try {
+    const url = $('#modelUrl').value.trim(); ls.set('modelUrl2', url);
+    const blob = await download(url); await putCache(url, blob); await useModel(blob, '取得済み');
+  } catch (e) { $('#dlp').hidden = true; setS('model', '失敗', 'bad'); msg(e.message, true); }
+};
+$('#modelFile').onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { await putCache('local:' + f.name, f); await useModel(f, f.name); } catch (er) { setS('model', '失敗', 'bad'); msg('モデルを読み込めません: ' + er.message, true); }
+};
+(async () => {
+  const key = ls.get('modelKey');
+  if (!key) return setS('model', '未取得(約5MB)', 'warn');
+  try {
+    const hit = await (await caches.open(MODEL_CACHE)).match(key);
+    if (!hit) return setS('model', '未取得(約5MB)', 'warn');
+    await useModel(await hit.blob(), '保存済み');
+  } catch (e) { setS('model', '読み込めません', 'bad'); msg(e.message, true); }
+})();
+
+/* ---------- 画像 ---------- */
+function sizes() {
+  if (!bmp) return null;
+  const s = Math.min(1, +$('#maxSide').value / Math.max(bmp.width, bmp.height));
+  return { w: Math.round(bmp.width * s), h: Math.round(bmp.height * s) };
+}
+function updateInfo() {
+  const z = sizes(); if (!z) return;
+  $('#info').textContent = '入力 ' + z.w + '×' + z.h + ' → 出力 ' + z.w * 4 + '×' + z.h * 4;
+}
+function updateRun() { $('#run').disabled = !(session && bmp) || !!ac; }
+$('#maxSide').onchange = () => { updateInfo(); drawFace(); };
+$('#imgFile').onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { bmp = await createImageBitmap(f); updateInfo(); msg(''); updateRun(); drawFace(); }
+  catch { bmp = null; msg('この画像を開けませんでした', true); }
+};
+
+/* ---------- 拡大 ---------- */
+const cl = (v) => v <= 0 ? 0 : v >= 1 ? 255 : (v * 255 + 0.5) | 0;
+async function upscale(onP, signal) {
+  const { w, h } = sizes(), SC = 4, P = 10, S = T - 2 * P;
+  const src = document.createElement('canvas'); src.width = w; src.height = h;
+  const sx = src.getContext('2d', { willReadFrequently: true }); sx.drawImage(bmp, 0, 0, w, h);
+  const sd = sx.getImageData(0, 0, w, h).data;
+  const out = document.createElement('canvas'); out.width = w * SC; out.height = h * SC;
+  const ox = out.getContext('2d');
+  const nx = Math.ceil(w / S), ny = Math.ceil(h / S), total = nx * ny, TT = T * T, OT = T * SC;
+  const inName = session.inputNames[0], outName = session.outputNames[0], buf = new Float32Array(3 * TT);
+  let n = 0;
+  for (let ty = 0; ty < ny; ty++) for (let tx = 0; tx < nx; tx++) {
+    if (signal.aborted) throw new Error('cancel');
+    const x0 = tx * S - P, y0 = ty * S - P;
+    for (let y = 0; y < T; y++) {
+      const yy = Math.min(h - 1, Math.max(0, y0 + y));
+      for (let x = 0; x < T; x++) {
+        const xx = Math.min(w - 1, Math.max(0, x0 + x)), i = (yy * w + xx) * 4, j = y * T + x;
+        buf[j] = sd[i] / 255; buf[TT + j] = sd[i + 1] / 255; buf[2 * TT + j] = sd[i + 2] / 255;
+      }
+    }
+    const r = await session.run({ [inName]: new ort.Tensor('float32', buf, [1, 3, T, T]) });
+    const o = r[outName];
+    if (o.type !== 'float32' || o.dims[2] !== OT) throw new Error('このモデルの出力形式には未対応です(float32・4倍のモデルを使ってください)');
+    const od = o.data, cw = Math.min(S, w - tx * S), ch = Math.min(S, h - ty * S);
+    const im = ox.createImageData(cw * SC, ch * SC), d = im.data;
+    for (let y = 0; y < ch * SC; y++) for (let x = 0; x < cw * SC; x++) {
+      const j = (P * SC + y) * OT + (P * SC + x), k = (y * cw * SC + x) * 4;
+      d[k] = cl(od[j]); d[k + 1] = cl(od[OT * OT + j]); d[k + 2] = cl(od[2 * OT * OT + j]); d[k + 3] = 255;
+    }
+    ox.putImageData(im, tx * S * SC, ty * S * SC);
+    o.dispose?.();
+    onP(++n, total);
+  }
+  return { src, out };
+}
+
+$('#run').onclick = async () => {
+  ac = new AbortController(); updateRun();
+  $('#cancel').hidden = false; $('#result').hidden = true;
+  const pg = $('#pg'); pg.hidden = false; pg.value = 0;
+  let lock = null; try { lock = await navigator.wakeLock?.request('screen'); } catch {}
+  const t0 = performance.now();
+  try {
+    const { src, out } = await upscale((n, total) => {
+      const el = (performance.now() - t0) / 1000;
+      pg.value = n / total;
+      msg(n + ' / ' + total + ' タイル(残り約 ' + fmtT(el / n * (total - n)) + ')。画面を点けたままにしてください。');
+    }, ac.signal);
+    outCanvas = out; showResult(src, out);
+    msg('完了しました(' + fmtT((performance.now() - t0) / 1000) + ')。');
+  } catch (e) {
+    msg(e.message === 'cancel' ? '中断しました。' : 'エラー: ' + e.message, e.message !== 'cancel');
+  } finally {
+    try { lock?.release(); } catch {}
+    ac = null; $('#cancel').hidden = true; pg.hidden = true; updateRun();
+  }
+};
+$('#cancel').onclick = () => ac && ac.abort();
+
+/* ---------- 結果 ---------- */
+const cmp = $('#cmp'), bar = $('#bar');
+function setPos(v) { v = Math.min(100, Math.max(0, v)); bar.style.left = v + '%'; const b = cmp.querySelector('.bf'); if (b) b.style.clipPath = 'inset(0 ' + (100 - v) + '% 0 0)'; }
+function showResult(src, out) {
+  cmp.querySelectorAll('canvas').forEach((c) => c.remove());
+  out.className = 'af'; src.className = 'bf';
+  cmp.prepend(src); cmp.prepend(out); setPos(50);
+  $('#result').hidden = false; $('#result').scrollIntoView({ behavior: 'smooth' });
+  emitResult(out);
+}
+const at = (e) => { const r = cmp.getBoundingClientRect(); setPos((e.clientX - r.left) / r.width * 100); };
+cmp.addEventListener('pointerdown', (e) => { cmp.setPointerCapture(e.pointerId); at(e); });
+cmp.addEventListener('pointermove', (e) => { if (cmp.hasPointerCapture(e.pointerId)) at(e); });
+$('#save').onclick = () => {
+  if (!outCanvas) return;
+  outCanvas.toBlob((b) => {
+    if (!b) return msg('保存用の画像を作れませんでした', true);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'upscaled.png';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  }, 'image/png');
+};
+
+/* ---------- 顔の修復 ---------- */
+const FACE_URL = 'https://huggingface.co/Saimon8420/restoreformer-pp-web/resolve/main/restoreformer_pp_int8w.onnx';
+let faceBytes = null, faceSess = null, faceBE = '', sel = null, srcC = null, dragFrom = null;
+const fp = $('#fp');
+
+function updFace() { $('#runFace').disabled = !(faceBytes && sel); }
+async function loadFace(blob, label) {
+  faceBytes = new Uint8Array(await blob.arrayBuffer()); faceSess = null;
+  setS('face', label, 'ok'); updFace();
+}
+$('#getFace').onclick = async () => {
+  try {
+    const blob = await download(FACE_URL, 'face');
+    try { await (await caches.open(MODEL_CACHE)).put(FACE_URL, new Response(blob)); } catch {}
+    await loadFace(blob, '取得済み');
+  } catch (e) { $('#dlp').hidden = true; setS('face', '失敗', 'bad'); msg(e.message, true); }
+};
+(async () => {
+  try {
+    const h = await (await caches.open(MODEL_CACHE)).match(FACE_URL);
+    if (h) await loadFace(await h.blob(), '保存済み'); else setS('face', '未取得(約74MB)', 'warn');
+  } catch { setS('face', '未取得(約74MB)', 'warn'); }
+})();
+
+function drawFace() {
+  const z = sizes(); if (!z) return;
+  srcC = document.createElement('canvas'); srcC.width = z.w; srcC.height = z.h;
+  srcC.getContext('2d').drawImage(bmp, 0, 0, z.w, z.h);
+  sel = null; fp.hidden = false; fp.width = z.w; fp.height = z.h; paint(); updFace(); initInp(); initCC();
+}
+function paint() {
+  const c = fp.getContext('2d'); c.drawImage(srcC, 0, 0);
+  if (sel) {
+    c.save(); c.translate(sel.x + sel.s / 2, sel.y + sel.s / 2); c.rotate(sel.a || 0);
+    c.lineWidth = Math.max(2, fp.width / 200); c.strokeStyle = '#2FD1E8'; c.strokeRect(-sel.s / 2, -sel.s / 2, sel.s, sel.s); c.restore();
+  }
+}
+const fpt = (e) => { const r = fp.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * fp.width, y: (e.clientY - r.top) / r.height * fp.height }; };
+fp.addEventListener('pointerdown', (e) => { fp.setPointerCapture(e.pointerId); dragFrom = fpt(e); });
+fp.addEventListener('pointermove', (e) => {
+  if (!dragFrom) return;
+  const p = fpt(e), s = Math.min(Math.max(Math.abs(p.x - dragFrom.x), Math.abs(p.y - dragFrom.y)), fp.width, fp.height);
+  const x = Math.min(Math.max(0, p.x < dragFrom.x ? dragFrom.x - s : dragFrom.x), fp.width - s);
+  const y = Math.min(Math.max(0, p.y < dragFrom.y ? dragFrom.y - s : dragFrom.y), fp.height - s);
+  sel = { x, y, s }; paint(); updFace();
+});
+fp.addEventListener('pointerup', () => { dragFrom = null; });
+
+$('#runFace').onclick = async () => {
+  $('#runFace').disabled = true; msg('顔を修復しています。端末によっては数分かかります。');
+  try {
+    const x = Math.round(sel.x), y = Math.round(sel.y), s = Math.max(16, Math.round(sel.s)), N = 512 * 512;
+    const t = document.createElement('canvas'); t.width = t.height = 512;
+    const tc = t.getContext('2d', { willReadFrequently: true });
+    const fcx = x + s / 2, fcy = y + s / 2, fa = sel.a || 0;
+    tc.fillStyle = '#000'; tc.fillRect(0, 0, 512, 512);
+    tc.save(); tc.translate(256, 256); tc.rotate(-fa); tc.scale(512 / s, 512 / s); tc.translate(-fcx, -fcy);
+    tc.drawImage(srcC, 0, 0); tc.restore();
+    const d = tc.getImageData(0, 0, 512, 512).data, buf = new Float32Array(3 * N);
+    for (let i = 0; i < N; i++) { buf[i] = d[i * 4] / 127.5 - 1; buf[N + i] = d[i * 4 + 1] / 127.5 - 1; buf[2 * N + i] = d[i * 4 + 2] / 127.5 - 1; }
+    const mk = async (cpu) => { faceSess = await ort.InferenceSession.create(faceBytes, { executionProviders: [cpu ? 'wasm' : 'webgpu'] }); faceBE = cpu ? 'CPU' : 'GPU'; };
+    const run = async () => {
+      const nm = faceSess.outputNames[0];
+      return (await faceSess.run({ [faceSess.inputNames[0]]: new ort.Tensor('float32', buf, [1, 3, 512, 512]) }, [nm]))[nm].data;
+    };
+    let o;
+    try { if (!faceSess) await mk(false); o = await run(); } catch { await mk(true); o = await run(); }
+    const im = tc.createImageData(512, 512), q = im.data;
+    for (let i = 0; i < N; i++) { q[i * 4] = cl((o[i] + 1) / 2); q[i * 4 + 1] = cl((o[N + i] + 1) / 2); q[i * 4 + 2] = cl((o[2 * N + i] + 1) / 2); q[i * 4 + 3] = 255; }
+    tc.putImageData(im, 0, 0);
+    const m = document.createElement('canvas'); m.width = m.height = 512;
+    const mc = m.getContext('2d'); mc.drawImage(t, 0, 0); mc.globalCompositeOperation = 'destination-in';
+    const g = mc.createRadialGradient(256, 256, 150, 256, 256, 256);
+    g.addColorStop(0, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)'); mc.fillStyle = g; mc.fillRect(0, 0, 512, 512);
+    const out = document.createElement('canvas'), before = document.createElement('canvas');
+    out.width = before.width = srcC.width; out.height = before.height = srcC.height;
+    before.getContext('2d').drawImage(srcC, 0, 0);
+    const oc = out.getContext('2d'); oc.drawImage(srcC, 0, 0); oc.save(); oc.translate(fcx, fcy); oc.rotate(fa); oc.scale(s / 512, s / 512); oc.drawImage(m, -256, -256); oc.restore();
+    outCanvas = out; showResult(before, out);
+    msg('顔の修復が完了しました(' + faceBE + ')。');
+  } catch (e) { msg('エラー: ' + e.message, true); }
+  finally { updFace(); }
+};
+
+/* ---------- フレーム補間(RIFE) ---------- */
+const RIFE_URL = 'https://huggingface.co/edgetools/rife/resolve/main/rife49.onnx';
+let rifeBytes = null, rifeSess = null, rifeBE = '', fA = null, fB = null;
+
+function updRife() { $('#runRife').disabled = !(rifeBytes && fA && fB); updSeq(); }
+async function loadRife(blob, label) {
+  rifeBytes = new Uint8Array(await blob.arrayBuffer()); rifeSess = null;
+  setS('rife', label, 'ok'); updRife();
+}
+$('#getRife').onclick = async () => {
+  try {
+    const blob = await download(RIFE_URL, 'rife');
+    try { await (await caches.open(MODEL_CACHE)).put(RIFE_URL, new Response(blob)); } catch {}
+    await loadRife(blob, '取得済み');
+  } catch (e) { $('#dlp').hidden = true; setS('rife', '失敗', 'bad'); msg(e.message, true); }
+};
+(async () => {
+  try {
+    const h = await (await caches.open(MODEL_CACHE)).match(RIFE_URL);
+    if (h) await loadRife(await h.blob(), '保存済み'); else setS('rife', '未取得', 'warn');
+  } catch { setS('rife', '未取得', 'warn'); }
+})();
+for (const [id, set] of [['#fA', (b) => { fA = b; }], ['#fB', (b) => { fB = b; }]]) {
+  $(id).onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try { set(await createImageBitmap(f)); } catch { set(null); msg('この画像を開けませんでした', true); }
+    updRife();
+  };
+}
+function saveCanvas(c, name) {
+  c.toBlob((b) => {
+    if (!b) return;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  }, 'image/png');
+}
+
+$('#runRife').onclick = async () => {
+  $('#runRife').disabled = true;
+  const box = $('#rifeOut'); box.replaceChildren(); $('#rifeNote').hidden = true;
+  try {
+    const k = +$('#rifeN').value, sc = Math.min(1, +$('#maxSide').value / Math.max(fA.width, fA.height));
+    const w = Math.round(fA.width * sc), h = Math.round(fA.height * sc);
+    const W = Math.ceil(w / 32) * 32, H = Math.ceil(h / 32) * 32, P = W * H;
+    const toT = (bm) => {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const cx = c.getContext('2d', { willReadFrequently: true }); cx.drawImage(bm, 0, 0, w, h);
+      const d = cx.getImageData(0, 0, w, h).data, a = new Float32Array(3 * P);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = (Math.min(y, h - 1) * w + Math.min(x, w - 1)) * 4, j = y * W + x;
+        a[j] = d[i] / 255; a[P + j] = d[i + 1] / 255; a[2 * P + j] = d[i + 2] / 255;
+      }
+      return new ort.Tensor('float32', a, [1, 3, H, W]);
+    };
+    const tA = toT(fA), tB = toT(fB);
+    const mk = async (cpu) => { rifeSess = await ort.InferenceSession.create(rifeBytes, { executionProviders: [cpu ? 'wasm' : 'webgpu'] }); rifeBE = cpu ? 'CPU' : 'GPU'; };
+    const run = async (t) => {
+      const n = rifeSess.inputNames;
+      const r = await rifeSess.run({ [n[0]]: tA, [n[1]]: tB, [n[2]]: new ort.Tensor('float32', new Float32Array([t]), [1]) });
+      return r[rifeSess.outputNames[0]].data;
+    };
+    for (let i = 1; i <= k; i++) {
+      msg('中間コマを作成しています(' + i + ' / ' + k + ')。');
+      const t = i / (k + 1);
+      let o;
+      try { if (!rifeSess) await mk(false); o = await run(t); } catch { await mk(true); o = await run(t); }
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const cx = c.getContext('2d'), im = cx.createImageData(w, h), q = im.data;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const j = y * W + x, m = (y * w + x) * 4;
+        q[m] = cl(o[j]); q[m + 1] = cl(o[P + j]); q[m + 2] = cl(o[2 * P + j]); q[m + 3] = 255;
+      }
+      cx.putImageData(im, 0, 0);
+      c.style.cssText = 'width:100%;height:auto;margin-top:8px;border:1px solid var(--line);cursor:pointer';
+      c.onclick = () => saveCanvas(c, 'interp_' + i + '.png');
+      box.appendChild(c);
+    }
+    $('#rifeNote').hidden = false;
+    msg('補間が完了しました(' + rifeBE + ')。');
+  } catch (e) { msg('エラー: ' + e.message, true); }
+  finally { updRife(); }
+};
+
+/* ---------- 連続写真から動画 ---------- */
+let seq = [];
+function updSeq() { $('#runSeq').disabled = !(rifeBytes && seq.length >= 2); }
+$('#fM').onchange = (e) => {
+  seq = [...e.target.files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  msg(seq.length + ' 枚を選択しました。'); updSeq();
+};
+$('#runSeq').onclick = async () => {
+  $('#runSeq').disabled = true; $('#seqV').hidden = true; $('#seqDl').hidden = true;
+  let lock = null; try { lock = await navigator.wakeLock?.request('screen'); } catch {}
+  try {
+    const k = +$('#mN').value, fps = +$('#mFps').value, bms = [];
+    for (const f of seq) bms.push(await createImageBitmap(f));
+    const sc = Math.min(1, +$('#maxSide').value / Math.max(bms[0].width, bms[0].height));
+    const w = Math.round(bms[0].width * sc), h = Math.round(bms[0].height * sc);
+    const W = Math.ceil(w / 32) * 32, H = Math.ceil(h / 32) * 32, P = W * H;
+    const toC = (bm) => { const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d', { willReadFrequently: true }).drawImage(bm, 0, 0, w, h); return c; };
+    const toT = (c) => {
+      const d = c.getContext('2d').getImageData(0, 0, w, h).data, a = new Float32Array(3 * P);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = (Math.min(y, h - 1) * w + Math.min(x, w - 1)) * 4, j = y * W + x;
+        a[j] = d[i] / 255; a[P + j] = d[i + 1] / 255; a[2 * P + j] = d[i + 2] / 255;
+      }
+      return new ort.Tensor('float32', a, [1, 3, H, W]);
+    };
+    const fromO = (o) => {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const cx = c.getContext('2d'), im = cx.createImageData(w, h), q = im.data;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const j = y * W + x, m = (y * w + x) * 4;
+        q[m] = cl(o[j]); q[m + 1] = cl(o[P + j]); q[m + 2] = cl(o[2 * P + j]); q[m + 3] = 255;
+      }
+      cx.putImageData(im, 0, 0); return c;
+    };
+    const mk = async (cpu) => { rifeSess = await ort.InferenceSession.create(rifeBytes, { executionProviders: [cpu ? 'wasm' : 'webgpu'] }); rifeBE = cpu ? 'CPU' : 'GPU'; };
+    const run = async (tA, tB, t) => {
+      const n = rifeSess.inputNames;
+      const r = await rifeSess.run({ [n[0]]: tA, [n[1]]: tB, [n[2]]: new ort.Tensor('float32', new Float32Array([t]), [1]) });
+      return r[rifeSess.outputNames[0]].data;
+    };
+    const frames = [], total = (bms.length - 1) * k; let done = 0;
+    let cPrev = toC(bms[0]), tPrev = toT(cPrev); frames.push(cPrev);
+    for (let i = 1; i < bms.length; i++) {
+      const cNext = toC(bms[i]), tNext = toT(cNext);
+      for (let j = 1; j <= k; j++) {
+        msg('中間コマを作成しています(' + (++done) + ' / ' + total + ')。画面を点けたままにしてください。');
+        let o;
+        try { if (!rifeSess) await mk(false); o = await run(tPrev, tNext, j / (k + 1)); } catch { await mk(true); o = await run(tPrev, tNext, j / (k + 1)); }
+        frames.push(fromO(o));
+      }
+      frames.push(cNext); cPrev = cNext; tPrev = tNext;
+    }
+    msg('動画に書き出しています。');
+    const rc = document.createElement('canvas'); rc.width = w; rc.height = h;
+    const rx = rc.getContext('2d'), mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
+    const rec = new MediaRecorder(rc.captureStream(fps), { mimeType: mime, videoBitsPerSecond: 8e6 }), chunks = [];
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    const stopped = new Promise((r) => { rec.onstop = r; });
+    rx.drawImage(frames[0], 0, 0); rec.start();
+    for (const c of frames) { rx.drawImage(c, 0, 0); await new Promise((r) => setTimeout(r, 1000 / fps)); }
+    rec.stop(); await stopped;
+    const url = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
+    $('#seqV').src = url; $('#seqV').hidden = false; $('#seqDl').href = url; $('#seqDl').hidden = false;
+    msg('動画を作成しました(' + frames.length + ' コマ、' + rifeBE + ')。');
+  } catch (e) { msg('エラー: ' + e.message, true); }
+  finally { try { lock?.release(); } catch {} updSeq(); }
+};
+
+/* ---------- 塗って消す(MI-GAN) ---------- */
+const INP_URL = 'https://huggingface.co/edgetools/migan/resolve/main/migan_pipeline_v2.onnx';
+let inpBytes = null, inpSess = null, inpBE = '', ipC = null, mkC = null, lastP = null;
+const ip = $('#ip');
+
+function updInp() { $('#runInp').disabled = !(inpBytes && ipC); }
+async function loadInp(blob, label) {
+  inpBytes = new Uint8Array(await blob.arrayBuffer()); inpSess = null;
+  setS('inp', label, 'ok'); updInp();
+}
+$('#getInp').onclick = async () => {
+  try {
+    const blob = await download(INP_URL, 'inp');
+    try { await (await caches.open(MODEL_CACHE)).put(INP_URL, new Response(blob)); } catch {}
+    await loadInp(blob, '取得済み');
+  } catch (e) { $('#dlp').hidden = true; setS('inp', '失敗', 'bad'); msg(e.message, true); }
+};
+(async () => {
+  try {
+    const h = await (await caches.open(MODEL_CACHE)).match(INP_URL);
+    if (h) await loadInp(await h.blob(), '保存済み'); else setS('inp', '未取得', 'warn');
+  } catch { setS('inp', '未取得', 'warn'); }
+})();
+
+function resetMask() { mkC = document.createElement('canvas'); mkC.width = ipC.width; mkC.height = ipC.height; }
+function initInp() {
+  if (!srcC) return;
+  ipC = document.createElement('canvas'); ipC.width = srcC.width; ipC.height = srcC.height;
+  ipC.getContext('2d', { willReadFrequently: true }).drawImage(srcC, 0, 0);
+  resetMask(); ip.hidden = false; ip.width = ipC.width; ip.height = ipC.height; paintInp(); updInp();
+}
+function paintInp() {
+  const c = ip.getContext('2d'); c.globalAlpha = 1; c.drawImage(ipC, 0, 0);
+  c.globalAlpha = 0.5; c.drawImage(mkC, 0, 0); c.globalAlpha = 1;
+}
+const ipt = (e) => { const r = ip.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * ip.width, y: (e.clientY - r.top) / r.height * ip.height }; };
+function stroke(a, b) {
+  const c = mkC.getContext('2d');
+  c.strokeStyle = '#ff2d2d'; c.lineCap = 'round'; c.lineWidth = Math.max(4, +$('#brush').value * Math.max(mkC.width, mkC.height));
+  c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+}
+ip.addEventListener('pointerdown', (e) => { ip.setPointerCapture(e.pointerId); lastP = ipt(e); stroke(lastP, lastP); paintInp(); });
+ip.addEventListener('pointermove', (e) => { if (!lastP) return; const p = ipt(e); stroke(lastP, p); lastP = p; paintInp(); });
+ip.addEventListener('pointerup', () => { lastP = null; });
+$('#clrInp').onclick = () => { if (ipC) { resetMask(); paintInp(); } };
+$('#rstInp').onclick = () => { if (srcC) initInp(); };
+
+$('#runInp').onclick = async () => {
+  $('#runInp').disabled = true; msg('消去しています。');
+  try {
+    const w = ipC.width, h = ipC.height, N = w * h;
+    const d = ipC.getContext('2d').getImageData(0, 0, w, h).data, md = mkC.getContext('2d').getImageData(0, 0, w, h).data;
+    const img = new Uint8Array(3 * N), mask = new Uint8Array(N); let any = false;
+    for (let i = 0; i < N; i++) {
+      img[i] = d[i * 4]; img[N + i] = d[i * 4 + 1]; img[2 * N + i] = d[i * 4 + 2];
+      const e = md[i * 4 + 3] > 127; mask[i] = e ? 0 : 255; if (e) any = true;
+    }
+    if (!any) throw new Error('消したい部分を塗ってください');
+    const mk = async (cpu) => { inpSess = await ort.InferenceSession.create(inpBytes, { executionProviders: [cpu ? 'wasm' : 'webgpu'] }); inpBE = cpu ? 'CPU' : 'GPU'; };
+    const run = async () => {
+      const r = await inpSess.run({ image: new ort.Tensor('uint8', img, [1, 3, h, w]), mask: new ort.Tensor('uint8', mask, [1, 1, h, w]) });
+      return r[inpSess.outputNames[0]].data;
+    };
+    let o;
+    try { if (!inpSess) await mk(false); o = await run(); } catch { await mk(true); o = await run(); }
+    const out = document.createElement('canvas'), before = document.createElement('canvas');
+    out.width = before.width = w; out.height = before.height = h;
+    before.getContext('2d').drawImage(ipC, 0, 0);
+    const cx = out.getContext('2d'), im = cx.createImageData(w, h), q = im.data;
+    for (let i = 0; i < N; i++) { q[i * 4] = o[i]; q[i * 4 + 1] = o[N + i]; q[i * 4 + 2] = o[2 * N + i]; q[i * 4 + 3] = 255; }
+    cx.putImageData(im, 0, 0);
+    ipC.getContext('2d').drawImage(out, 0, 0); resetMask(); paintInp();
+    outCanvas = out; showResult(before, out);
+    msg('消去が完了しました(' + inpBE + ')。続けて別の部分を塗って消せます。');
+  } catch (e) { msg('エラー: ' + e.message, true); }
+  finally { updInp(); }
+};
+
+/* ---------- 顔の自動検出(YuNet) ---------- */
+const DET_URLS = [
+  'https://huggingface.co/pollen-robotics/face_detection_yunet_2023mar/resolve/main/face_detection_yunet_2023mar.onnx',
+  'https://huggingface.co/priyanshsen21/foundyou-models/resolve/main/face_detection_yunet_2023mar.onnx'
+];
+let detSess = null;
+async function getDet() {
+  if (detSess) return detSess;
+  const c = await caches.open(MODEL_CACHE); let bytes = null;
+  for (const u of DET_URLS) { const hit = await c.match(u); if (hit) { bytes = new Uint8Array(await hit.arrayBuffer()); break; } }
+  for (const u of DET_URLS) {
+    if (bytes) break;
+    try { const r = await fetch(u); if (r.ok) { const b = await r.blob(); try { await c.put(u, new Response(b)); } catch {} bytes = new Uint8Array(await b.arrayBuffer()); } } catch {}
+  }
+  if (!bytes) throw new Error('顔検出モデルを取得できませんでした');
+  detSess = await ort.InferenceSession.create(bytes, { executionProviders: ['wasm'] });
+  return detSess;
+}
+$('#detFace').onclick = async () => {
+  if (!srcC) return msg('先に画像を選んでください', true);
+  $('#detFace').disabled = true; msg('顔を検出しています。');
+  try {
+    const s = await getDet(), w = srcC.width, h = srcC.height, sc = 640 / Math.max(w, h), M = 640 * 640;
+    const t = document.createElement('canvas'); t.width = t.height = 640;
+    const tc = t.getContext('2d', { willReadFrequently: true });
+    tc.fillStyle = '#000'; tc.fillRect(0, 0, 640, 640); tc.drawImage(srcC, 0, 0, w * sc, h * sc);
+    const d = tc.getImageData(0, 0, 640, 640).data, buf = new Float32Array(3 * M);
+    for (let i = 0; i < M; i++) { buf[i] = d[i * 4 + 2]; buf[M + i] = d[i * 4 + 1]; buf[2 * M + i] = d[i * 4]; }
+    const r = await s.run({ [s.inputNames[0]]: new ort.Tensor('float32', buf, [1, 3, 640, 640]) });
+    const c01 = (v) => Math.min(Math.max(v, 0), 1);
+    let best = null;
+    for (const st of [8, 16, 32]) {
+      const n = 640 / st, cls = r['cls_' + st].data, obj = r['obj_' + st].data, bb = r['bbox_' + st].data, kp = r['kps_' + st].data;
+      for (let i = 0; i < n * n; i++) {
+        const sco = Math.sqrt(c01(cls[i]) * c01(obj[i]));
+        if (sco < 0.6) continue;
+        const col = i % n, row = (i / n) | 0;
+        const bw = Math.exp(bb[i * 4 + 2]) * st, bh = Math.exp(bb[i * 4 + 3]) * st;
+        if (best && bw * bh <= best.bw * best.bh) continue;
+        best = {
+          bw, bh, cx: (col + bb[i * 4]) * st, cy: (row + bb[i * 4 + 1]) * st,
+          eR: [(col + kp[i * 10]) * st, (row + kp[i * 10 + 1]) * st], eL: [(col + kp[i * 10 + 2]) * st, (row + kp[i * 10 + 3]) * st]
+        };
+      }
+    }
+    if (!best) throw new Error('顔を検出できませんでした。ドラッグで範囲を指定してください');
+    const side = Math.min(1.8 * Math.max(best.bw, best.bh) / sc, 2 * Math.max(w, h));
+    const cx = best.cx / sc, cy = best.cy / sc;
+    sel = { x: cx - side / 2, y: cy - side / 2, s: side, a: Math.atan2(best.eL[1] - best.eR[1], best.eL[0] - best.eR[0]) };
+    paint(); updFace(); msg('顔を検出しました。枠が合っていれば「顔を修復」を押してください。');
+  } catch (e) { msg('エラー: ' + e.message, true); }
+  finally { $('#detFace').disabled = false; }
+};
+
+/* ---------- 色の補正 ---------- */
+const cc = $('#cc'), SL = [['b', '明るさ'], ['c', 'コントラスト'], ['s', '彩度'], ['w', '色温度(青↔橙)'], ['g', '色かぶり(緑↔紫)']];
+let ccBase = null, ccT = null, ccR = null, ccDrag = null;
+const NONE = { x: 0, y: 0, w: 0, h: 0 };
+const cp = (c) => { const o = document.createElement('canvas'); o.width = c.width; o.height = c.height; o.getContext('2d', { willReadFrequently: true }).drawImage(c, 0, 0); return o; };
+for (const [k, n] of SL) {
+  $('#ccSl').insertAdjacentHTML('beforeend', '<label class="f" for="sl-' + k + '">' + n + ' <span id="sv-' + k + '">0</span></label><input type="range" id="sl-' + k + '" min="-100" max="100" value="0" style="width:100%">');
+  $('#sl-' + k).oninput = () => { $('#sv-' + k).textContent = $('#sl-' + k).value; ccPaint(); };
+}
+const sv = () => Object.fromEntries(SL.map(([k]) => [k, +$('#sl-' + k).value / 100]));
+function resetSl() { for (const [k] of SL) { $('#sl-' + k).value = 0; $('#sv-' + k).textContent = 0; } }
+function adjPx(q, p) {
+  let r = q[0] + p.w * 40 + p.b * 80, g = q[1] - p.g * 40 + p.b * 80, b = q[2] - p.w * 40 + p.b * 80;
+  const k = 1 + p.c; r = (r - 128) * k + 128; g = (g - 128) * k + 128; b = (b - 128) * k + 128;
+  const y = 0.299 * r + 0.587 * g + 0.114 * b, s = 1 + p.s;
+  q[0] = y + (r - y) * s; q[1] = y + (g - y) * s; q[2] = y + (b - y) * s;
+}
+// 範囲 rect(なければ全体)にだけ fn を適用した新しいキャンバスを返す。縁はぼかして境目を目立たせない。
+function ccApply(src, rect, fn) {
+  const out = cp(src), cx = out.getContext('2d'), w = src.width, h = src.height, R = rect || { x: 0, y: 0, w, h };
+  const x0 = Math.max(0, R.x | 0), y0 = Math.max(0, R.y | 0), x1 = Math.min(w, (R.x + R.w) | 0), y1 = Math.min(h, (R.y + R.h) | 0);
+  if (x1 - x0 < 2 || y1 - y0 < 2) return out;
+  const ww = x1 - x0, hh = y1 - y0, im = cx.getImageData(x0, y0, ww, hh), d = im.data, f = rect ? Math.max(1, Math.min(12, Math.min(ww, hh) / 8)) : 0, q = new Uint8ClampedArray(3);
+  for (let y = 0; y < hh; y++) for (let x = 0; x < ww; x++) {
+    const i = (y * ww + x) * 4, a = f ? Math.min(1, x / f, (ww - 1 - x) / f, y / f, (hh - 1 - y) / f) : 1;
+    q[0] = d[i]; q[1] = d[i + 1]; q[2] = d[i + 2]; fn(q);
+    d[i] += (q[0] - d[i]) * a; d[i + 1] += (q[1] - d[i + 1]) * a; d[i + 2] += (q[2] - d[i + 2]) * a;
+  }
+  cx.putImageData(im, x0, y0); return out;
+}
+const ccTarget = () => $('#ccScope').value === 't' ? (ccT || NONE) : null;
+function ccPaint() {
+  if (!ccBase) return;
+  const p = sv(), c = cc.getContext('2d');
+  c.drawImage(ccApply(ccBase, ccTarget(), (q) => adjPx(q, p)), 0, 0);
+  c.lineWidth = Math.max(2, cc.width / 200);
+  for (const [R, col] of [[ccT, '#2FD1E8'], [ccR, '#F2A93B']]) if (R) { c.strokeStyle = col; c.strokeRect(R.x, R.y, R.w, R.h); }
+}
+function initCC() {
+  if (!srcC) return;
+  ccBase = cp(srcC); ccT = ccR = null; cc.hidden = false; cc.width = srcC.width; cc.height = srcC.height; resetSl(); ccPaint();
+}
+const cpt = (e) => { const r = cc.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * cc.width, y: (e.clientY - r.top) / r.height * cc.height }; };
+cc.addEventListener('pointerdown', (e) => { cc.setPointerCapture(e.pointerId); ccDrag = cpt(e); });
+cc.addEventListener('pointermove', (e) => {
+  if (!ccDrag) return;
+  const p = cpt(e), R = { x: Math.min(p.x, ccDrag.x), y: Math.min(p.y, ccDrag.y), w: Math.abs(p.x - ccDrag.x), h: Math.abs(p.y - ccDrag.y) };
+  if ($('#ccMode').value === 't') ccT = R; else ccR = R;
+  ccPaint();
+});
+cc.addEventListener('pointerup', () => { ccDrag = null; });
+$('#ccScope').onchange = ccPaint;
+$('#ccReset').onclick = initCC;
+
+function ccStats(c, R) {
+  const x = Math.max(0, R.x | 0), y = Math.max(0, R.y | 0), w = Math.max(1, Math.min(c.width - x, R.w | 0)), h = Math.max(1, Math.min(c.height - y, R.h | 0));
+  const d = c.getContext('2d').getImageData(x, y, w, h).data, n = w * h, m = [0, 0, 0], s = [0, 0, 0];
+  for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) m[k] += d[i * 4 + k];
+  for (let k = 0; k < 3; k++) m[k] /= n;
+  for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) { const e = d[i * 4 + k] - m[k]; s[k] += e * e; }
+  return { m, s: s.map((v) => Math.sqrt(v / n) || 1) };
+}
+function ccCommit(next) {
+  const before = cp(ccBase); ccBase = next; resetSl(); ccPaint();
+  const out = cp(ccBase); outCanvas = out; showResult(before, out);
+}
+$('#ccMatch').onclick = () => {
+  if (!ccBase) return msg('先に画像を選んでください', true);
+  if (!ccT || !ccR || ccT.w < 2 || ccR.w < 2) return msg('「合わせたい部分」と「基準にする周り」の両方を囲んでください', true);
+  const T = ccStats(ccBase, ccT), R = ccStats(ccBase, ccR), gain = $('#ccMeth').value === 'g', lim = (v) => Math.min(2, Math.max(0.5, v));
+  ccCommit(ccApply(ccBase, ccT, (q) => {
+    for (let k = 0; k < 3; k++) q[k] = gain ? q[k] * lim(R.m[k] / T.m[k]) : (q[k] - T.m[k]) * lim(R.s[k] / T.s[k]) + R.m[k];
+  }));
+  msg('周りの色に合わせました。結果は比較表示で確認できます。');
+};
+$('#ccApply').onclick = () => {
+  if (!ccBase) return msg('先に画像を選んでください', true);
+  const p = sv(); ccCommit(ccApply(ccBase, ccTarget(), (q) => adjPx(q, p)));
+  msg('調整を適用しました。続けて調整や保存ができます。');
+};
+
+/* ---------- 埋め込みAPI(iframe + postMessage) ----------
+   親ページから <iframe> でこのページを開き、aiphoto-client.js 経由で操作する。
+   受け付けるのは、親ウィンドウ(window.parent)からのメッセージだけ。 */
+var pend = null;
+function emitResult(out) {
+  if (!pend) return;
+  const p = pend; pend = null;
+  out.toBlob((b) => p.src.postMessage({ type: 'aiphoto:result', id: p.id, op: p.op, blob: b, width: out.width, height: out.height }, p.origin), 'image/png');
+}
+function emitError(t) {
+  if (!pend) return;
+  const p = pend; pend = null;
+  p.src.postMessage({ type: 'aiphoto:error', id: p.id, message: t }, p.origin);
+}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+window.addEventListener('message', async (e) => {
+  if (window.parent === window || e.source !== window.parent) return;
+  const m = e.data || {};
+  if (typeof m.type !== 'string' || !m.type.startsWith('aiphoto:')) return;
+  const reply = (d) => e.source.postMessage(Object.assign({ id: m.id }, d), e.origin);
+  const ready = { upscale: () => !!session, face: () => !!faceBytes };
+  try {
+    if (m.type === 'aiphoto:ping') return reply({ type: 'aiphoto:ready', ops: ['upscale', 'face', 'adjust'], loaded: { upscale: ready.upscale(), face: ready.face() } });
+    if (m.type === 'aiphoto:prepare') {
+      const btn = { upscale: '#getModel', face: '#getFace' }, row = { upscale: 'model', face: 'face' };
+      for (const n of m.models || []) {
+        if (!ready[n]) throw new Error('未対応のモデル: ' + n);
+        if (ready[n]()) continue;
+        $(btn[n]).click();
+        while (!ready[n]()) { if ($('#s-' + row[n]).dataset.s === 'bad') throw new Error(n + ' モデルを取得できませんでした'); await sleep(300); }
+      }
+      return reply({ type: 'aiphoto:prepared' });
+    }
+    if (m.type === 'aiphoto:load') {
+      bmp = await createImageBitmap(m.image instanceof Blob ? m.image : new Blob([m.image]));
+      const o = [...$('#maxSide').options].find((x) => +x.value === m.maxSide); if (o) $('#maxSide').value = o.value;
+      updateInfo(); updateRun(); drawFace();
+      return reply({ type: 'aiphoto:loaded', width: bmp.width, height: bmp.height });
+    }
+    if (m.type === 'aiphoto:run') {
+      if (pend) throw new Error('別の処理が実行中です');
+      if (!bmp) throw new Error('先に aiphoto:load で画像を渡してください');
+      pend = { src: e.source, origin: e.origin, id: m.id, op: m.op };
+      if (m.op === 'upscale') {
+        if (!session) throw new Error('拡大モデルが未取得です(先に prepare を呼んでください)');
+        $('#run').click();
+      } else if (m.op === 'face') {
+        if (!faceBytes) throw new Error('顔モデルが未取得です(先に prepare を呼んでください)');
+        sel = null; $('#detFace').click();
+        for (let i = 0; i < 600 && !sel && pend; i++) await sleep(100);
+        if (sel && pend) $('#runFace').click();
+      } else if (m.op === 'adjust') {
+        initCC(); resetSl(); const p = m.params || {};
+        for (const [k] of SL) $('#sl-' + k).value = Math.max(-100, Math.min(100, +p[k] || 0));
+        $('#ccScope').value = 'a'; $('#ccApply').click();
+      } else throw new Error('未対応の処理: ' + m.op);
+    }
+  } catch (er) { pend = null; reply({ type: 'aiphoto:error', message: er.message }); }
+});
+</script>
+</body>
+</html>
